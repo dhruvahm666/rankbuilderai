@@ -9,6 +9,7 @@ import { downloadTestPDF } from "@/lib/pdf";
 export const Route = createFileRoute("/mock")({
   head: () => ({ meta: [{ title: "Mock Test — Student Helper by Dhruva" }] }),
   component: MockPage,
+  ssr: false,
 });
 
 const SECONDS_PER_Q = 90;
@@ -20,10 +21,8 @@ function MockPage() {
   const [timeLeft, setTimeLeft] = useState(SECONDS_PER_Q);
   const [done, setDone] = useState(false);
   const [numericalDraft, setNumericalDraft] = useState("");
-
-  useEffect(() => {
-    if (questions.length === 0) navigate({ to: "/" });
-  }, [questions.length, navigate]);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (done || questions.length === 0) return;
@@ -43,7 +42,32 @@ function MockPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, done, questions.length]);
 
-  if (questions.length === 0) return null;
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-5">
+        <div className="paper-card max-w-sm rounded-2xl p-6 text-center">
+          <h2 className="font-display text-xl font-bold">No test loaded</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Generate a question set to start a mock test.
+          </p>
+          <Link
+            to="/"
+            className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            Go to setup
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   function advance() {
     const q = questions[idx];
