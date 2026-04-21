@@ -122,8 +122,12 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
     };
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55_000);
+
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
@@ -137,7 +141,7 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
           tools: [tool],
           tool_choice: { type: "function", function: { name: "return_questions" } },
         }),
-      });
+      }).finally(() => clearTimeout(timeoutId));
 
       if (response.status === 429) {
         return { questions: [], error: "Usage limit reached. Please try later." };
@@ -191,6 +195,12 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
       return { questions };
     } catch (err) {
       console.error("generateQuestions failed", err);
-      return { questions: [], error: "AI service temporarily unavailable. Please try again." };
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      return {
+        questions: [],
+        error: isAbort
+          ? "Generation took too long. Please try fewer questions or try again."
+          : "AI service temporarily unavailable. Please try again.",
+      };
     }
   });
