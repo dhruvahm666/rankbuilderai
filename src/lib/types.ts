@@ -1,0 +1,28 @@
+export type ExamLevel = "KCET" | "NEET" | "JEE Mains" | "JEE Advanced";
+export type QuestionType = "MCQ" | "Numerical" | "Mixed";
+export type Mode = "practice" | "mock";
+
+export interface MCQQuestion {
+  type: "MCQ";
+  question: string;
+  options: [string, string, string, string];
+  correctIndex: 0 | 1 | 2 | 3;
+  solution: string;
+}
+
+export interface NumericalQuestion {
+  type: "Numerical";
+  question: string;
+  answer: string;
+  solution: string;
+}
+
+export type GeneratedQuestion = MCQQuestion | NumericalQuestion;
+
+export interface GenerateConfig {
+  examLevel: ExamLevel;
+  questionType: QuestionType;
+  count: number;
+  topic?: string;
+  imageDataUrl?: string;
+}
