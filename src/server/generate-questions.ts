@@ -195,6 +195,12 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
       return { questions };
     } catch (err) {
       console.error("generateQuestions failed", err);
-      return { questions: [], error: "AI service temporarily unavailable. Please try again." };
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      return {
+        questions: [],
+        error: isAbort
+          ? "Generation took too long. Please try fewer questions or try again."
+          : "AI service temporarily unavailable. Please try again.",
+      };
     }
   });
