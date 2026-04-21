@@ -1,0 +1,168 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { ArrowLeft, BookOpen, Check, Download, Eye, EyeOff, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useSession, isCorrect } from "@/lib/session";
+import { downloadTestPDF } from "@/lib/pdf";
+
+export const Route = createFileRoute("/practice")({
+  head: () => ({ meta: [{ title: "Practice — Student Helper by Dhruva" }] }),
+  component: PracticePage,
+});
+
+function PracticePage() {
+  const navigate = useNavigate();
+  const { questions, examLevel, topic, answers, setAnswer } = useSession();
+  const [showSolutions, setShowSolutions] = useState(false);
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (questions.length === 0) navigate({ to: "/" });
+  }, [questions.length, navigate]);
+
+  if (questions.length === 0) return null;
+
+  const correctCount = questions.reduce(
+    (n, q, i) => n + (isCorrect(q, answers[i]) ? 1 : 0),
+    0
+  );
+
+  return (
+    <div className="min-h-screen pb-20">
+      <header className="sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
+          <Link
+            to="/"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <div className="font-display text-base font-bold">Practice</div>
+          </div>
+          <div className="ml-auto text-xs text-muted-foreground">
+            {examLevel} • {questions.length}Q
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-4 py-6">
+        {topic && <p className="mb-4 text-sm text-muted-foreground">Topic: {topic}</p>}
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSolutions((s) => !s)}
+          >
+            {showSolutions ? <EyeOff className="mr-1 h-4 w-4" /> : <Eye className="mr-1 h-4 w-4" />}
+            {showSolutions ? "Hide all solutions" : "Show all solutions"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadTestPDF({ questions, examLevel, topic })}
+          >
+            <Download className="mr-1 h-4 w-4" /> PDF
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          {questions.map((q, i) => {
+            const ans = answers[i];
+            const correct = isCorrect(q, ans);
+            const showSol = showSolutions || revealed[i];
+            return (
+              <article key={i} className="paper-card rounded-xl p-4 md:p-5">
+                <div className="mb-2 flex items-baseline gap-2">
+                  <span className="font-display text-lg font-bold text-primary">Q{i + 1}.</span>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
+                    {q.type}
+                  </span>
+                </div>
+                <p className="mb-3 text-[15px] leading-relaxed">{q.question}</p>
+
+                {q.type === "MCQ" ? (
+                  <div className="space-y-2">
+                    {q.options.map((opt, oi) => {
+                      const selected = ans === oi;
+                      const isAnswer = oi === q.correctIndex;
+                      const showState = ans !== undefined;
+                      let cls =
+                        "flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition w-full";
+                      if (showState && isAnswer) cls += " border-success bg-success/10";
+                      else if (showState && selected && !isAnswer)
+                        cls += " border-destructive bg-destructive/10";
+                      else if (selected) cls += " border-primary bg-primary/5";
+                      else cls += " border-border hover:border-primary/40 hover:bg-secondary/50";
+                      return (
+                        <button key={oi} onClick={() => setAnswer(i, oi)} className={cls}>
+                          <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-bold">
+                            {["A", "B", "C", "D"][oi]}
+                          </span>
+                          <span className="flex-1">{opt}</span>
+                          {showState && isAnswer && <Check className="h-4 w-4 text-success" />}
+                          {showState && selected && !isAnswer && (
+                            <X className="h-4 w-4 text-destructive" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Your numerical answer"
+                      value={(ans as string) ?? ""}
+                      onChange={(e) => setAnswer(i, e.target.value)}
+                      className="bg-background"
+                    />
+                    {ans !== undefined && ans !== "" && (
+                      <div
+                        className={`flex items-center justify-center rounded-md px-3 text-sm font-semibold ${
+                          correct
+                            ? "bg-success/15 text-success"
+                            : "bg-destructive/15 text-destructive"
+                        }`}
+                      >
+                        {correct ? "Correct" : `Ans: ${q.answer}`}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!showSol && (
+                  <button
+                    onClick={() => setRevealed((r) => ({ ...r, [i]: true }))}
+                    className="mt-3 text-xs font-semibold text-primary hover:underline"
+                  >
+                    Show solution
+                  </button>
+                )}
+                {showSol && (
+                  <div className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-sm">
+                    <div className="mb-1 font-display text-xs font-bold uppercase tracking-wider text-primary">
+                      Solution
+                    </div>
+                    <p className="whitespace-pre-wrap leading-relaxed">{q.solution}</p>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="paper-card mt-6 rounded-xl p-4 text-center">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">Score</div>
+          <div className="font-display text-4xl font-black text-primary">
+            {correctCount} / {questions.length}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
