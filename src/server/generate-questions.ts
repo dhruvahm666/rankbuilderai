@@ -35,6 +35,19 @@ FORMAT:
 - For "Mixed": a balanced mix of MCQ and Numerical.
 - Every question must include a concise step-by-step solution (2-4 logical steps focusing on the concept used).
 
+LANGUAGE & MATH FORMATTING (VERY IMPORTANT):
+- Write ALL questions and solutions in simple, plain English that a student can read easily.
+- DO NOT use LaTeX, code blocks, backticks, or symbols like \\frac, \\sqrt, ^{}, _{}, \\int, \\sum, \\theta, \\pi, \\Delta, \\rightarrow.
+- Write math in natural readable form:
+  - Use "x squared" or "x^2" (simple caret), NOT "x^{2}" or "$x^2$".
+  - Use "square root of 5" instead of "\\sqrt{5}".
+  - Use "1/2" or "one-half" instead of "\\frac{1}{2}".
+  - Use words like "theta", "pi", "delta", "alpha" instead of Greek symbols.
+  - Use "integral of ... from a to b" instead of "\\int_a^b".
+  - Use "→" sparingly; prefer words like "gives", "becomes", "therefore".
+- Solutions must read like a teacher explaining on a blackboard — short sentences, clear logic, no symbol soup.
+- Units should be written normally (m/s, kg, N, mol) without LaTeX wrappers.
+
 OUTPUT: You MUST respond by calling the "return_questions" tool with the structured questions. Do not return prose.`;
 
 export const generateQuestions = createServerFn({ method: "POST" })
