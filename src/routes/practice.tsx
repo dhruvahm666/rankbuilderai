@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, Check, Download, Eye, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,19 +9,42 @@ import { downloadTestPDF } from "@/lib/pdf";
 export const Route = createFileRoute("/practice")({
   head: () => ({ meta: [{ title: "Practice — Student Helper by Dhruva" }] }),
   component: PracticePage,
+  ssr: false,
 });
 
 function PracticePage() {
-  const navigate = useNavigate();
   const { questions, examLevel, topic, answers, setAnswer } = useSession();
   const [showSolutions, setShowSolutions] = useState(false);
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
-    if (questions.length === 0) navigate({ to: "/" });
-  }, [questions.length, navigate]);
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
 
-  if (questions.length === 0) return null;
+  if (questions.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-5">
+        <div className="paper-card max-w-sm rounded-2xl p-6 text-center">
+          <h2 className="font-display text-xl font-bold">No questions yet</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Generate a question set first.
+          </p>
+          <Link
+            to="/"
+            className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            Go to setup
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const correctCount = questions.reduce(
     (n, q, i) => n + (isCorrect(q, answers[i]) ? 1 : 0),
