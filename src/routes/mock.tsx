@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
+import { QuestionBody } from "@/components/QuestionBody";
 
 export const Route = createFileRoute("/mock")({
   head: () => ({ meta: [{ title: "Mock Test — Student Helper by Dhruva" }] }),
@@ -189,36 +190,38 @@ function MockPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-6">
         <article className="paper-card rounded-xl p-5 md:p-6">
-          <div className="mb-2 flex items-baseline gap-2">
-            <span className="font-display text-lg font-bold text-primary">Q{idx + 1}.</span>
+          <header className="mb-3 flex items-baseline justify-between gap-3">
+            <span className="exam-qnum text-lg">Q{idx + 1}.</span>
             <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
               {q.type}
             </span>
-          </div>
-          <p className="mb-5 whitespace-pre-wrap text-[16px] leading-7">{q.question}</p>
+          </header>
+
+          <QuestionBody text={q.question} />
 
           {q.type === "MCQ" ? (
-            <div className="space-y-2">
+            <ul className="exam-options">
               {q.options.map((opt, oi) => {
                 const selected = answers[idx] === oi;
                 return (
-                  <button
-                    key={oi}
-                    onClick={() => setAnswer(idx, oi)}
-                    className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left text-sm transition ${
-                      selected
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                        : "border-border hover:border-primary/40 hover:bg-secondary/50"
-                    }`}
-                  >
-                    <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-bold">
-                      {["A", "B", "C", "D"][oi]}
-                    </span>
-                    <span className="flex-1 whitespace-pre-wrap leading-6">{opt}</span>
-                  </button>
+                  <li key={oi}>
+                    <button
+                      onClick={() => setAnswer(idx, oi)}
+                      className={`flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-[14.5px] leading-7 transition ${
+                        selected
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border hover:border-primary/40 hover:bg-secondary/50"
+                      }`}
+                    >
+                      <span className="exam-option-label mt-0.5 text-primary">
+                        ({["a", "b", "c", "d"][oi]})
+                      </span>
+                      <span className="flex-1 whitespace-pre-wrap">{opt}</span>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           ) : (
             <Input
               type="text"

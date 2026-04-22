@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
+import { QuestionBody } from "@/components/QuestionBody";
 
 export const Route = createFileRoute("/practice")({
   head: () => ({ meta: [{ title: "Practice — Student Helper by Dhruva" }] }),
@@ -98,42 +99,45 @@ function PracticePage() {
             const correct = isCorrect(q, ans);
             const showSol = showSolutions || revealed[i];
             return (
-              <article key={i} className="paper-card rounded-xl p-4 md:p-5">
-                <div className="mb-2 flex items-baseline gap-2">
-                  <span className="font-display text-lg font-bold text-primary">Q{i + 1}.</span>
+              <article key={i} className="paper-card rounded-xl p-5 md:p-6">
+                <header className="mb-3 flex items-baseline justify-between gap-3">
+                  <span className="exam-qnum text-lg">Q{i + 1}.</span>
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
                     {q.type}
                   </span>
-                </div>
-                <p className="mb-3 whitespace-pre-wrap text-[15px] leading-7">{q.question}</p>
+                </header>
+
+                <QuestionBody text={q.question} />
 
                 {q.type === "MCQ" ? (
-                  <div className="space-y-2">
+                  <ul className="exam-options">
                     {q.options.map((opt, oi) => {
                       const selected = ans === oi;
                       const isAnswer = oi === q.correctIndex;
                       const showState = ans !== undefined;
                       let cls =
-                        "flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition w-full";
+                        "flex items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-[14.5px] leading-7 transition w-full";
                       if (showState && isAnswer) cls += " border-success bg-success/10";
                       else if (showState && selected && !isAnswer)
                         cls += " border-destructive bg-destructive/10";
                       else if (selected) cls += " border-primary bg-primary/5";
                       else cls += " border-border hover:border-primary/40 hover:bg-secondary/50";
                       return (
-                        <button key={oi} onClick={() => setAnswer(i, oi)} className={cls}>
-                          <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-bold">
-                            {["A", "B", "C", "D"][oi]}
-                          </span>
-                          <span className="flex-1 whitespace-pre-wrap leading-6">{opt}</span>
-                          {showState && isAnswer && <Check className="h-4 w-4 text-success" />}
-                          {showState && selected && !isAnswer && (
-                            <X className="h-4 w-4 text-destructive" />
-                          )}
-                        </button>
+                        <li key={oi}>
+                          <button onClick={() => setAnswer(i, oi)} className={cls}>
+                            <span className="exam-option-label mt-0.5 text-primary">
+                              ({["a", "b", "c", "d"][oi]})
+                            </span>
+                            <span className="flex-1 whitespace-pre-wrap">{opt}</span>
+                            {showState && isAnswer && <Check className="mt-1 h-4 w-4 flex-shrink-0 text-success" />}
+                            {showState && selected && !isAnswer && (
+                              <X className="mt-1 h-4 w-4 flex-shrink-0 text-destructive" />
+                            )}
+                          </button>
+                        </li>
                       );
                     })}
-                  </div>
+                  </ul>
                 ) : (
                   <div className="flex gap-2">
                     <Input
@@ -167,11 +171,11 @@ function PracticePage() {
                   </button>
                 )}
                 {showSol && (
-                  <div className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-sm">
-                    <div className="mb-1 font-display text-xs font-bold uppercase tracking-wider text-primary">
+                  <div className="mt-4 rounded-lg border border-border bg-secondary/40 p-4">
+                    <div className="mb-2 font-display text-xs font-bold uppercase tracking-wider text-primary">
                       Solution
                     </div>
-                    <p className="whitespace-pre-wrap leading-7">{q.solution}</p>
+                    <QuestionBody text={q.solution} size="sm" />
                   </div>
                 )}
               </article>
