@@ -50,7 +50,7 @@ GLOBAL TEXTBOOK FORMATTING (STRICTLY FOLLOW — NEVER WRITE CODE-STYLE):
 - Square roots: write as √5 , √(x² + 1). NEVER \\sqrt.
 - Powers: x², x³, x⁴, eˣ, 2ⁿ. For variable powers like x to the n, write xⁿ.
 - Integrals: write as ∫ from a to b of f(x) dx. NEVER \\int.
-- Spacing: leave a clean blank line between the question stem and any equation/structure block. Use natural sentence spacing.
+- Spacing: leave a clean blank line between the question stem and any equation/structure/diagram block, and another blank line after the block before continuing. Reactions, structures, "Given:/Find:" data, match-the-following columns, and text diagrams MUST appear on their own lines (never inline inside a paragraph) so the renderer can format them as a centered block.
 
 MATHEMATICS:
 - Convert every expression into proper textbook form using the Unicode rules above.
