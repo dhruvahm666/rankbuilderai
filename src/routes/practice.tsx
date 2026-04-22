@@ -105,7 +105,7 @@ function PracticePage() {
                     {q.type}
                   </span>
                 </div>
-                <p className="mb-3 text-[15px] leading-relaxed">{q.question}</p>
+                <p className="mb-3 whitespace-pre-wrap text-[15px] leading-7">{q.question}</p>
 
                 {q.type === "MCQ" ? (
                   <div className="space-y-2">
@@ -125,7 +125,7 @@ function PracticePage() {
                           <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-bold">
                             {["A", "B", "C", "D"][oi]}
                           </span>
-                          <span className="flex-1">{opt}</span>
+                          <span className="flex-1 whitespace-pre-wrap leading-6">{opt}</span>
                           {showState && isAnswer && <Check className="h-4 w-4 text-success" />}
                           {showState && selected && !isAnswer && (
                             <X className="h-4 w-4 text-destructive" />
@@ -171,7 +171,7 @@ function PracticePage() {
                     <div className="mb-1 font-display text-xs font-bold uppercase tracking-wider text-primary">
                       Solution
                     </div>
-                    <p className="whitespace-pre-wrap leading-relaxed">{q.solution}</p>
+                    <p className="whitespace-pre-wrap leading-7">{q.solution}</p>
                   </div>
                 )}
               </article>
