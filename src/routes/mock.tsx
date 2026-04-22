@@ -195,7 +195,7 @@ function MockPage() {
               {q.type}
             </span>
           </div>
-          <p className="mb-5 text-[16px] leading-relaxed">{q.question}</p>
+          <p className="mb-5 whitespace-pre-wrap text-[16px] leading-7">{q.question}</p>
 
           {q.type === "MCQ" ? (
             <div className="space-y-2">
@@ -214,7 +214,7 @@ function MockPage() {
                     <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-bold">
                       {["A", "B", "C", "D"][oi]}
                     </span>
-                    <span className="flex-1">{opt}</span>
+                    <span className="flex-1 whitespace-pre-wrap leading-6">{opt}</span>
                   </button>
                 );
               })}
