@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Upload, Sparkles, BookOpen, X, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { generateQuestions } from "@/server/generate-questions";
 import { useSession } from "@/lib/session";
+import { useProfile } from "@/lib/profile";
+import { ProfileGate } from "@/components/ProfileGate";
+import { ProfileChip } from "@/components/ProfileChip";
 import type { ExamLevel, Mode, QuestionType } from "@/lib/types";
 
 export const Route = createFileRoute("/")({
@@ -20,8 +23,17 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  component: Home,
+  component: HomeRoute,
+  ssr: false,
 });
+
+function HomeRoute() {
+  return (
+    <ProfileGate>
+      <Home />
+    </ProfileGate>
+  );
+}
 
 const EXAM_LEVELS: ExamLevel[] = ["KCET", "NEET", "JEE Mains", "JEE Advanced"];
 const Q_TYPES: QuestionType[] = ["MCQ", "Numerical", "Mixed"];
@@ -29,6 +41,7 @@ const Q_TYPES: QuestionType[] = ["MCQ", "Numerical", "Mixed"];
 function Home() {
   const navigate = useNavigate();
   const setSession = useSession((s) => s.setSession);
+  const { profile } = useProfile();
 
   const [examLevel, setExamLevel] = useState<ExamLevel>("JEE Mains");
   const [questionType, setQuestionType] = useState<QuestionType>("MCQ");
@@ -39,6 +52,16 @@ function Home() {
   const [imageName, setImageName] = useState("");
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Pre-select exam level once, based on saved profile preference
+  const didPreselect = useRef(false);
+  useEffect(() => {
+    if (didPreselect.current || !profile) return;
+    didPreselect.current = true;
+    if (profile.exam === "NEET") setExamLevel("NEET");
+    else if (profile.exam === "KCET") setExamLevel("KCET");
+    else if (profile.exam === "JEE") setExamLevel("JEE Mains");
+  }, [profile]);
 
   function pickImage() {
     fileRef.current?.click();
@@ -118,9 +141,7 @@ function Home() {
               <div className="text-xs text-muted-foreground">by Dhruva</div>
             </div>
           </div>
-          <div className="hidden text-xs uppercase tracking-widest text-muted-foreground sm:block">
-            JEE • NEET • KCET
-          </div>
+          <ProfileChip />
         </div>
       </header>
 
