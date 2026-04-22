@@ -141,9 +141,7 @@ function Home() {
               <div className="text-xs text-muted-foreground">by Dhruva</div>
             </div>
           </div>
-          <div className="hidden text-xs uppercase tracking-widest text-muted-foreground sm:block">
-            JEE • NEET • KCET
-          </div>
+          <ProfileChip />
         </div>
       </header>
 
