@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Upload, Sparkles, BookOpen, X, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { generateQuestions } from "@/server/generate-questions";
 import { useSession } from "@/lib/session";
+import { useProfile } from "@/lib/profile";
+import { ProfileGate } from "@/components/ProfileGate";
+import { ProfileChip } from "@/components/ProfileChip";
 import type { ExamLevel, Mode, QuestionType } from "@/lib/types";
 
 export const Route = createFileRoute("/")({
@@ -20,8 +23,17 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  component: Home,
+  component: HomeRoute,
+  ssr: false,
 });
+
+function HomeRoute() {
+  return (
+    <ProfileGate>
+      <Home />
+    </ProfileGate>
+  );
+}
 
 const EXAM_LEVELS: ExamLevel[] = ["KCET", "NEET", "JEE Mains", "JEE Advanced"];
 const Q_TYPES: QuestionType[] = ["MCQ", "Numerical", "Mixed"];
