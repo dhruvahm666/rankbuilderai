@@ -41,6 +41,7 @@ const Q_TYPES: QuestionType[] = ["MCQ", "Numerical", "Mixed"];
 function Home() {
   const navigate = useNavigate();
   const setSession = useSession((s) => s.setSession);
+  const { profile } = useProfile();
 
   const [examLevel, setExamLevel] = useState<ExamLevel>("JEE Mains");
   const [questionType, setQuestionType] = useState<QuestionType>("MCQ");
@@ -51,6 +52,16 @@ function Home() {
   const [imageName, setImageName] = useState("");
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Pre-select exam level once, based on saved profile preference
+  const didPreselect = useRef(false);
+  useEffect(() => {
+    if (didPreselect.current || !profile) return;
+    didPreselect.current = true;
+    if (profile.exam === "NEET") setExamLevel("NEET");
+    else if (profile.exam === "KCET") setExamLevel("KCET");
+    else if (profile.exam === "JEE") setExamLevel("JEE Mains");
+  }, [profile]);
 
   function pickImage() {
     fileRef.current?.click();
