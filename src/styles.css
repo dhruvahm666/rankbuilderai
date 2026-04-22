@@ -156,4 +156,48 @@
     height: 1px;
     opacity: 0.25;
   }
+
+  /* ---------- MTG-style printed exam paper ---------- */
+  .exam-q {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--foreground);
+    font-feature-settings: "ss01", "cv11", "lnum", "tnum";
+  }
+  .exam-q .stem {
+    margin: 0 0 0.85rem 0;
+    white-space: pre-wrap;
+  }
+  /* Centered monospaced block for reactions / structures / diagrams */
+  .exam-block {
+    display: block;
+    margin: 0.6rem auto 0.85rem auto;
+    padding: 0.65rem 0.9rem;
+    background: color-mix(in oklab, var(--amber) 10%, var(--card));
+    border: 1px solid color-mix(in oklab, var(--ink) 12%, transparent);
+    border-radius: 0.5rem;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+    text-align: center;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--foreground);
+  }
+  .exam-block.is-match {
+    text-align: left;
+  }
+  .exam-options {
+    list-style: none;
+    margin: 0.25rem 0 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+  .exam-qnum {
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: -0.01em;
+  }
 }
