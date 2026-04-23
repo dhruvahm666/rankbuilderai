@@ -17,7 +17,7 @@ const SECONDS_PER_Q = 90;
 
 function MockPage() {
   const navigate = useNavigate();
-  const { questions, examLevel, topic, answers, setAnswer } = useSession();
+  const { questions, examLevel, topic, subject, answers, setAnswer } = useSession();
   const [idx, setIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(SECONDS_PER_Q);
   const [done, setDone] = useState(false);
@@ -142,7 +142,7 @@ function MockPage() {
             <Button variant="outline" onClick={() => navigate({ to: "/practice" })}>
               View Solutions
             </Button>
-            <Button onClick={() => downloadTestPDF({ questions, examLevel, topic })}>
+            <Button onClick={() => downloadTestPDF({ questions, examLevel, topic, subject })}>
               <Download className="mr-1 h-4 w-4" /> Download PDF
             </Button>
           </div>

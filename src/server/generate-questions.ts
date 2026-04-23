@@ -7,6 +7,7 @@ interface GenerateInput {
   count: number;
   topic?: string;
   imageDataUrl?: string; // data:image/...;base64,...
+  subject?: "Physics" | "Chemistry" | "Maths" | "Biology";
 }
 
 interface GenerateResult {
@@ -38,9 +39,13 @@ FORMAT:
 - Begin questions with friendly, simple verbs: "Find", "Evaluate", "Compute", "Identify", "Which of the following", "What is".
 
 GLOBAL TEXTBOOK FORMATTING (STRICTLY FOLLOW — NEVER WRITE CODE-STYLE):
-- ABSOLUTELY NO LaTeX, NO markdown, NO backticks, NO code blocks, NO asterisks for math, NO programming syntax.
-- NEVER use these characters for math: *, /, ^, _, \\\\, {}, [], \\frac, \\sqrt, \\int, \\sum, \\theta, \\pi.
-- Use proper Unicode textbook characters directly:
+- For complex mathematics (fractions, integrals with limits, summations, square roots over expressions, matrices, derivatives), wrap the expression in KaTeX delimiters so it renders as proper math:
+   - Inline: $\\frac{a}{b}$, $\\int_0^1 x^2\\,dx$, $\\sqrt{x^2 + 1}$, $\\lim_{x \\to 0} \\frac{\\sin x}{x}$
+   - Display (centered, on its own line): $$\\int_0^{\\pi} \\sin x \\, dx = 2$$
+- Use KaTeX ONLY for math. Do NOT wrap chemical reactions, organic structures, biology diagrams, match-the-following columns, plain prose or option text in $...$.
+- For SIMPLE math that reads naturally inline (like x², H₂O, CO₂, x + y = 5, sin θ = 1/2), prefer Unicode characters and the rules below — no KaTeX needed.
+- NO markdown, NO backticks, NO code blocks, NO asterisks (use × for multiplication).
+- Outside of KaTeX delimiters, use proper Unicode textbook characters directly:
   - Superscripts: x², x³, xⁿ, 10⁻³, e^x → write as eˣ
   - Subscripts: H₂O, CO₂, x₁, x₂, aₙ
   - Math symbols: × (not *), ÷ or / written as fraction line, ± , ≤ , ≥ , ≠ , ≈ , ∞ , √ , ∫ , Σ , Δ , ∇ , ∂

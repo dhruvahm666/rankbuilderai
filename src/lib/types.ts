@@ -1,6 +1,7 @@
 export type ExamLevel = "KCET" | "NEET" | "JEE Mains" | "JEE Advanced";
 export type QuestionType = "MCQ" | "Numerical" | "Mixed";
 export type Mode = "practice" | "mock";
+export type Subject = "Physics" | "Chemistry" | "Maths" | "Biology";
 
 export interface MCQQuestion {
   type: "MCQ";
@@ -25,4 +26,5 @@ export interface GenerateConfig {
   count: number;
   topic?: string;
   imageDataUrl?: string;
+  subject?: Subject;
 }

@@ -1,11 +1,11 @@
 import { Fragment } from "react";
+import { InlineMath, BlockMath } from "react-katex";
+import "katex/dist/katex.min.css";
 
 /**
  * Detects whether a chunk of lines should render as a centered monospace
  * "exam block" (reactions, organic structures, text diagrams, match-the-
  * following columns, "Given:/Find:" data blocks) vs normal prose.
- *
- * Heuristics — kept conservative so plain prose stays as prose.
  */
 const REACTION_RE = /[→⇌⇒⇔]/;
 const STRUCTURE_RE = /(CH[₀-₉0-9]?|—|--|⌬|\bC=O\b|\bC≡C\b|\bOH\b|\bNH[₂2]\b|\bNO[₂2]\b)/;
@@ -36,7 +36,6 @@ function segment(text: string): Segment[] {
     if (kind) {
       const buf: string[] = [];
       const isMatch = kind === "match" || kind === "given";
-      // Group consecutive block-like lines (allow single blank line gaps)
       while (i < lines.length) {
         const cur = lines[i];
         const next = lines[i + 1] ?? "";
@@ -50,7 +49,6 @@ function segment(text: string): Segment[] {
         i++;
         if (cur.trim() === "" && blockKindFor(next) === null) break;
       }
-      // Trim trailing blank lines
       while (buf.length && buf[buf.length - 1].trim() === "") buf.pop();
       if (buf.length) out.push({ kind: "block", text: buf.join("\n"), isMatch });
     } else {
@@ -64,6 +62,69 @@ function segment(text: string): Segment[] {
     }
   }
   return out;
+}
+
+/**
+ * Render math segments inside prose. Supports:
+ *  - $$...$$  → block math
+ *  - $...$    → inline math
+ *  - \(...\)  → inline math
+ *  - \[...\]  → block math
+ */
+type MathPart =
+  | { type: "text"; value: string }
+  | { type: "inline"; value: string }
+  | { type: "block"; value: string };
+
+function parseMath(text: string): MathPart[] {
+  const parts: MathPart[] = [];
+  // Combined regex: $$...$$ | \[...\] | $...$ | \(...\)
+  const re = /(\$\$[\s\S]+?\$\$)|(\\\[[\s\S]+?\\\])|(\$[^$\n]+?\$)|(\\\([\s\S]+?\\\))/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push({ type: "text", value: text.slice(last, m.index) });
+    const tok = m[0];
+    if (tok.startsWith("$$")) {
+      parts.push({ type: "block", value: tok.slice(2, -2).trim() });
+    } else if (tok.startsWith("\\[")) {
+      parts.push({ type: "block", value: tok.slice(2, -2).trim() });
+    } else if (tok.startsWith("\\(")) {
+      parts.push({ type: "inline", value: tok.slice(2, -2).trim() });
+    } else {
+      parts.push({ type: "inline", value: tok.slice(1, -1).trim() });
+    }
+    last = m.index + tok.length;
+  }
+  if (last < text.length) parts.push({ type: "text", value: text.slice(last) });
+  return parts.length ? parts : [{ type: "text", value: text }];
+}
+
+function ProseWithMath({ text, className }: { text: string; className: string }) {
+  const parts = parseMath(text);
+  return (
+    <p className={className}>
+      {parts.map((p, i) => {
+        if (p.type === "text") return <Fragment key={i}>{p.value}</Fragment>;
+        if (p.type === "inline") {
+          try {
+            return <InlineMath key={i} math={p.value} />;
+          } catch {
+            return <Fragment key={i}>{p.value}</Fragment>;
+          }
+        }
+        try {
+          return (
+            <span key={i} className="my-2 block">
+              <BlockMath math={p.value} />
+            </span>
+          );
+        } catch {
+          return <Fragment key={i}>{p.value}</Fragment>;
+        }
+      })}
+    </p>
+  );
 }
 
 export function QuestionBody({
@@ -84,11 +145,7 @@ export function QuestionBody({
     <div className={`exam-q ${className}`}>
       {segments.map((seg, idx) => {
         if (seg.kind === "prose") {
-          return (
-            <p key={idx} className={proseClass}>
-              {seg.text}
-            </p>
-          );
+          return <ProseWithMath key={idx} text={seg.text} className={proseClass} />;
         }
         return (
           <Fragment key={idx}>
