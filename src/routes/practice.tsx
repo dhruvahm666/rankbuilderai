@@ -14,7 +14,7 @@ export const Route = createFileRoute("/practice")({
 });
 
 function PracticePage() {
-  const { questions, examLevel, topic, answers, setAnswer } = useSession();
+  const { questions, examLevel, topic, subject, answers, setAnswer } = useSession();
   const [showSolutions, setShowSolutions] = useState(false);
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [mounted, setMounted] = useState(false);
@@ -87,7 +87,7 @@ function PracticePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadTestPDF({ questions, examLevel, topic })}
+            onClick={() => downloadTestPDF({ questions, examLevel, topic, subject })}
           >
             <Download className="mr-1 h-4 w-4" /> PDF
           </Button>
