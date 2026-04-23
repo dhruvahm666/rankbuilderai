@@ -127,6 +127,35 @@ function ProseWithMath({ text, className }: { text: string; className: string })
   );
 }
 
+/**
+ * Inline KaTeX-aware renderer for short strings (option text, answers,
+ * table cells). Renders math inside $...$, $$...$$, \(...\), \[...\] and
+ * leaves the rest as plain text. No <p> wrapper, so it can sit inside
+ * buttons / list items without breaking layout.
+ */
+export function InlineMathText({ text, className = "" }: { text: string; className?: string }) {
+  const parts = parseMath(text || "");
+  return (
+    <span className={className}>
+      {parts.map((p, i) => {
+        if (p.type === "text") return <Fragment key={i}>{p.value}</Fragment>;
+        if (p.type === "inline") {
+          try {
+            return <InlineMath key={i} math={p.value} />;
+          } catch {
+            return <Fragment key={i}>{p.value}</Fragment>;
+          }
+        }
+        try {
+          return <InlineMath key={i} math={p.value} />;
+        } catch {
+          return <Fragment key={i}>{p.value}</Fragment>;
+        }
+      })}
+    </span>
+  );
+}
+
 export function QuestionBody({
   text,
   className = "",

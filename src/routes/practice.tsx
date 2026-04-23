@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
-import { QuestionBody } from "@/components/QuestionBody";
+import { QuestionBody, InlineMathText } from "@/components/QuestionBody";
 
 export const Route = createFileRoute("/practice")({
   head: () => ({ meta: [{ title: "Practice — Student Helper by Dhruva" }] }),
@@ -128,7 +128,7 @@ function PracticePage() {
                             <span className="exam-option-label mt-0.5 text-primary">
                               ({["a", "b", "c", "d"][oi]})
                             </span>
-                            <span className="flex-1 whitespace-pre-wrap">{opt}</span>
+                            <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" />
                             {showState && isAnswer && <Check className="mt-1 h-4 w-4 flex-shrink-0 text-success" />}
                             {showState && selected && !isAnswer && (
                               <X className="mt-1 h-4 w-4 flex-shrink-0 text-destructive" />
@@ -156,7 +156,7 @@ function PracticePage() {
                             : "bg-destructive/15 text-destructive"
                         }`}
                       >
-                        {correct ? "Correct" : `Ans: ${q.answer}`}
+                        {correct ? "Correct" : <>Ans: <InlineMathText text={q.answer} /></>}
                       </div>
                     )}
                   </div>

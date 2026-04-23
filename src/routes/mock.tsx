@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
-import { QuestionBody } from "@/components/QuestionBody";
+import { QuestionBody, InlineMathText } from "@/components/QuestionBody";
 
 export const Route = createFileRoute("/mock")({
   head: () => ({ meta: [{ title: "Mock Test — Student Helper by Dhruva" }] }),
@@ -216,7 +216,7 @@ function MockPage() {
                       <span className="exam-option-label mt-0.5 text-primary">
                         ({["a", "b", "c", "d"][oi]})
                       </span>
-                      <span className="flex-1 whitespace-pre-wrap">{opt}</span>
+                      <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" />
                     </button>
                   </li>
                 );
