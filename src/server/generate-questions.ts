@@ -125,7 +125,7 @@ OUTPUT: You MUST respond by calling the "return_questions" tool with the structu
 export const generateQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: GenerateInput) => {
     if (!input || typeof input !== "object") throw new Error("Invalid input");
-    const count = Math.max(5, Math.min(15, Math.floor(Number(input.count) || 5)));
+    const count = Math.max(5, Math.min(30, Math.floor(Number(input.count) || 5)));
     return {
       examLevel: input.examLevel,
       questionType: input.questionType,
