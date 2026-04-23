@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ExamLevel, GeneratedQuestion, Mode, QuestionType } from "./types";
+import type { ExamLevel, GeneratedQuestion, Mode, QuestionType, Subject } from "./types";
 
 interface SessionState {
   questions: GeneratedQuestion[];
@@ -7,6 +7,7 @@ interface SessionState {
   questionType: QuestionType;
   mode: Mode;
   topic: string;
+  subject?: Subject;
   // user answers indexed by question index. MCQ -> 0-3, Numerical -> string
   answers: Record<number, number | string | undefined>;
   setSession: (s: {
@@ -15,6 +16,7 @@ interface SessionState {
     questionType: QuestionType;
     mode: Mode;
     topic: string;
+    subject?: Subject;
   }) => void;
   setAnswer: (i: number, v: number | string) => void;
   reset: () => void;
@@ -26,6 +28,7 @@ export const useSession = create<SessionState>((set) => ({
   questionType: "MCQ",
   mode: "practice",
   topic: "",
+  subject: undefined,
   answers: {},
   setSession: (s) => set({ ...s, answers: {} }),
   setAnswer: (i, v) => set((st) => ({ answers: { ...st.answers, [i]: v } })),

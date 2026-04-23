@@ -7,6 +7,7 @@ interface GenerateInput {
   count: number;
   topic?: string;
   imageDataUrl?: string; // data:image/...;base64,...
+  subject?: "Physics" | "Chemistry" | "Maths" | "Biology";
 }
 
 interface GenerateResult {
