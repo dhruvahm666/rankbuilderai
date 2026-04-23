@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
-import { QuestionBody } from "@/components/QuestionBody";
+import { QuestionBody, InlineMathText } from "@/components/QuestionBody";
 
 export const Route = createFileRoute("/mock")({
   head: () => ({ meta: [{ title: "Mock Test — Student Helper by Dhruva" }] }),
@@ -117,10 +117,9 @@ function MockPage() {
             {questions.map((q, i) => {
               const userAns = answers[i];
               const ok = isCorrect(q, userAns);
-              const correctText =
-                q.type === "MCQ"
-                  ? `${["A", "B", "C", "D"][q.correctIndex]}. ${q.options[q.correctIndex]}`
-                  : q.answer;
+              const prefix =
+                q.type === "MCQ" ? `${["A", "B", "C", "D"][q.correctIndex]}. ` : "";
+              const answerText = q.type === "MCQ" ? q.options[q.correctIndex] : q.answer;
               return (
                 <div key={i} className="flex items-start gap-3 p-3 text-sm">
                   <span
@@ -132,7 +131,10 @@ function MockPage() {
                   >
                     {i + 1}
                   </span>
-                  <span className="flex-1 font-semibold">{correctText}</span>
+                  <span className="flex-1 font-semibold">
+                    {prefix}
+                    <InlineMathText text={answerText} />
+                  </span>
                 </div>
               );
             })}
@@ -216,7 +218,7 @@ function MockPage() {
                       <span className="exam-option-label mt-0.5 text-primary">
                         ({["a", "b", "c", "d"][oi]})
                       </span>
-                      <span className="flex-1 whitespace-pre-wrap">{opt}</span>
+                      <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" />
                     </button>
                   </li>
                 );
