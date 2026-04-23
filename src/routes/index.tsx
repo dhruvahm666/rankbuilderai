@@ -196,11 +196,8 @@ function Home() {
         res = await attempt();
       }
       if (res.error || res.questions.length === 0) {
-        toast.error(res.error || "Could not generate questions. Try again.", {
-          action: {
-            label: "Retry",
-            onClick: () => onGenerate(),
-          },
+        toast.error(res.error || "Something went wrong. Please retry.", {
+          action: { label: "Retry", onClick: () => onGenerate() },
         });
         return;
       }
@@ -214,7 +211,7 @@ function Home() {
       });
       navigate({ to: mode === "mock" ? "/mock" : "/practice" });
     } catch {
-      toast.error("AI service temporarily unavailable. Please try again.", {
+      toast.error("Something went wrong. Please retry.", {
         action: { label: "Retry", onClick: () => onGenerate() },
       });
     } finally {
