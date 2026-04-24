@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { generateQuestions } from "@/server/generate-questions";
+import { generateInBatches, type BatchProgress } from "@/lib/generate-batches";
 import { useSession } from "@/lib/session";
 import { useProfile } from "@/lib/profile";
 import { ProfileGate } from "@/components/ProfileGate";
@@ -113,6 +113,7 @@ function Home() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<BatchProgress | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Pre-select exam level once based on saved profile preference
@@ -176,9 +177,17 @@ function Home() {
       return;
     }
     setLoading(true);
-    const attempt = async () =>
-      generateQuestions({
-        data: {
+    setProgress({
+      generated: 0,
+      total: count,
+      batchIndex: 1,
+      totalBatches: Math.max(1, Math.ceil(count / 5)),
+      attempt: 1,
+    });
+
+    try {
+      const res = await generateInBatches(
+        {
           examLevel,
           questionType,
           count,
@@ -186,21 +195,23 @@ function Home() {
           imageDataUrl: imageDataUrl || undefined,
           subject: subject || undefined,
         },
-      });
+        (p) => setProgress(p),
+      );
 
-    try {
-      let res = await attempt();
-      // One automatic retry if image-related transient failure
-      if ((res.error || res.questions.length === 0) && imageDataUrl) {
-        await new Promise((r) => setTimeout(r, 800));
-        res = await attempt();
-      }
-      if (res.error || res.questions.length === 0) {
+      if (res.questions.length === 0) {
         toast.error(res.error || "Something went wrong. Please retry.", {
           action: { label: "Retry", onClick: () => onGenerate() },
         });
         return;
       }
+
+      if (res.error) {
+        // Partial success — let the user know but continue with what we have
+        toast.warning(
+          `Got ${res.questions.length} of ${count} questions. ${res.error}`,
+        );
+      }
+
       setSession({
         questions: res.questions,
         examLevel,
@@ -216,6 +227,7 @@ function Home() {
       });
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   }
 
@@ -495,7 +507,10 @@ function Home() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating questions...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  {progress
+                    ? `Generating ${Math.min(progress.generated + 5, progress.total)}/${progress.total}${progress.attempt > 1 ? ` (retry ${progress.attempt})` : ""}...`
+                    : "Generating questions..."}
                 </>
               ) : (
                 <>
@@ -503,6 +518,22 @@ function Home() {
                 </>
               )}
             </Button>
+            {loading && progress && (
+              <div className="mt-3">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full bg-primary transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, (progress.generated / progress.total) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-1.5 text-center text-xs text-muted-foreground">
+                  Batch {progress.batchIndex} of {progress.totalBatches}
+                  {progress.attempt > 1 ? ` • retrying (${progress.attempt}/3)` : ""}
+                </p>
+              </div>
+            )}
             <p className="mt-3 text-center text-xs text-muted-foreground">
               <ImageIcon className="mr-1 inline h-3 w-3" />
               Powered by AI vision — your image stays private.
