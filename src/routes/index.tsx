@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { generateQuestions } from "@/server/generate-questions";
+import { generateInBatches, type BatchProgress } from "@/lib/generate-batches";
 import { useSession } from "@/lib/session";
 import { useProfile } from "@/lib/profile";
 import { ProfileGate } from "@/components/ProfileGate";
