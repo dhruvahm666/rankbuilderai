@@ -507,7 +507,10 @@ function Home() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating questions...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  {progress
+                    ? `Generating ${Math.min(progress.generated + 5, progress.total)}/${progress.total}${progress.attempt > 1 ? ` (retry ${progress.attempt})` : ""}...`
+                    : "Generating questions..."}
                 </>
               ) : (
                 <>
@@ -515,6 +518,22 @@ function Home() {
                 </>
               )}
             </Button>
+            {loading && progress && (
+              <div className="mt-3">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full bg-primary transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, (progress.generated / progress.total) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-1.5 text-center text-xs text-muted-foreground">
+                  Batch {progress.batchIndex} of {progress.totalBatches}
+                  {progress.attempt > 1 ? ` • retrying (${progress.attempt}/3)` : ""}
+                </p>
+              </div>
+            )}
             <p className="mt-3 text-center text-xs text-muted-foreground">
               <ImageIcon className="mr-1 inline h-3 w-3" />
               Powered by AI vision — your image stays private.
