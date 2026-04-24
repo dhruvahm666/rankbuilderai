@@ -215,27 +215,53 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
     };
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 55_000);
+      // Silent server-side retry (3 attempts) for transient network / 5xx errors.
+      // 429 (rate limit) and 402 (credits) are NOT retried — they need user action.
+      let response: Response | null = null;
+      let lastNetworkErr: unknown = null;
+      const MAX_FETCH_ATTEMPTS = 3;
+      for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 55_000);
+        try {
+          response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                { role: "user", content: userParts },
+              ],
+              tools: [tool],
+              tool_choice: { type: "function", function: { name: "return_questions" } },
+            }),
+          });
+        } catch (err) {
+          lastNetworkErr = err;
+          response = null;
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userParts },
-          ],
-          tools: [tool],
-          tool_choice: { type: "function", function: { name: "return_questions" } },
-        }),
-      }).finally(() => clearTimeout(timeoutId));
+        // Stop retrying on success or on errors the user must resolve
+        if (response && (response.ok || response.status === 429 || response.status === 402)) break;
 
+        // Retry on network failure or 5xx
+        if (attempt < MAX_FETCH_ATTEMPTS) {
+          const delay = 600 * Math.pow(2, attempt - 1) + Math.random() * 250;
+          await new Promise((r) => setTimeout(r, delay));
+        }
+      }
+
+      if (!response) {
+        console.error("AI gateway network failure", lastNetworkErr);
+        return { questions: [], error: "AI service temporarily unavailable. Please try again." };
+      }
       if (response.status === 429) {
         return { questions: [], error: "Usage limit reached. Please try later." };
       }
