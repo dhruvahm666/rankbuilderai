@@ -73,16 +73,24 @@ MATHEMATICS:
    "If sin θ = 1/2 and θ lies in the first quadrant, find cos θ."
 - NEVER write "x^2", "x**2", "2*x", "sqrt(5)", or "(1/2)*x".
 
-CHEMISTRY:
-- ALWAYS show full balanced chemical reactions when relevant. Use → for forward, ⇌ for equilibrium.
-   Example: CH₄ + 2O₂ → CO₂ + 2H₂O
+CHEMISTRY (REACTIONS — STRICT NCERT TEXTBOOK STYLE):
+- When the question concerns a chemical change, ALWAYS auto-generate the FULL BALANCED chemical equation tied to the concept (combustion, neutralisation, displacement, redox, esterification, hydrolysis, dehydration, addition, substitution, etc.). Never describe a reaction in words when an equation can be written.
+- Place every reaction on its OWN line, separated by blank lines from the surrounding prose, so it renders as a centred reaction block. Never inline a full reaction inside a sentence.
+- Use proper arrows: → for forward, ⇌ for equilibrium, ⇒ for "implies". Above-arrow conditions go in parentheses immediately after the arrow, e.g. → (conc. H₂SO₄, Δ).
+- Subscripts must always be Unicode (H₂O, CO₂, SO₄, NH₃, C₆H₁₂O₆), never "H2O" or "H_2O".
+- Charges and oxidation states must always be Unicode superscripts (Na⁺, Cl⁻, Fe²⁺, Fe³⁺, SO₄²⁻, NH₄⁺, MnO₄⁻). Never "Fe^2+" or "Fe2+".
+- Show physical states when standard: (s), (l), (g), (aq). Example: AgNO₃(aq) + NaCl(aq) → AgCl(s) + NaNO₃(aq).
+- For equilibrium constants, rate laws, electrode potentials, or the Nernst equation, use KaTeX so it renders as proper math:
+   $$K_c = \\frac{[NH_3]^2}{[N_2][H_2]^3}$$
+   $$E = E^\\circ - \\frac{0.059}{n} \\log Q$$
 - For organic chemistry, ALWAYS show the structure, not just the name. Use clean text structures:
    CH₃ — CH₂ — OH
    CH₃ — CH(OH) — CH₃
-   For benzene rings, write a small ASCII-style hexagon or describe substituents clearly:
+   For benzene rings, describe substituents clearly:
        Benzene ring with —OH at position 1 and —NO₂ at position 4
    You may also draw a compact ring like:
         ⌬ — OH    (use ⌬ as the benzene symbol)
+- NEVER write raw LaTeX outside $...$ / $$...$$. NEVER write "->" — use →. NEVER write "<=>" — use ⇌. NEVER write "H2SO4" — use H₂SO₄. NEVER write "Fe2+" — use Fe²⁺.
 - Show charges as superscripts: Na⁺, Cl⁻, SO₄²⁻, NH₄⁺.
 - Show oxidation states in roman numerals in brackets: Fe(III), Mn(VII).
 - For numerical chemistry questions, use this clean block layout inside the question text:
