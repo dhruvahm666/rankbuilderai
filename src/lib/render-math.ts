@@ -38,7 +38,7 @@ const IGNORED_TAGS = [
 
 // Skip CSS classes that contain pre-rendered math from react-katex, or
 // blocks we never want to scan.
-const IGNORED_CLASSES = /(^|\s)(katex|katex-display|katex-html|exam-block)(\s|$)/;
+const IGNORED_CLASSES = /(^|\s)(katex|katex-display|katex-html|exam-block|smiles-rendered)(\s|$)/;
 
 let scheduled = false;
 
@@ -96,8 +96,8 @@ export function useGlobalMathRenderer() {
           ? target.className
           : (target as any).className?.baseVal || "") as string;
         if (cls && IGNORED_CLASSES.test(cls)) continue;
-        // Ignore mutations entirely inside an existing katex tree
-        if (target.closest && target.closest(".katex")) continue;
+        // Ignore mutations entirely inside an existing katex / smiles tree
+        if (target.closest && (target.closest(".katex") || target.closest(".smiles-rendered"))) continue;
         relevant = true;
         break;
       }
