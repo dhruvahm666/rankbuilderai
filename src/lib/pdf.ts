@@ -13,21 +13,24 @@ export async function downloadTestPDF(opts: {
   topic?: string;
   subject?: string;
 }) {
-  // Build a hidden, print-styled snapshot so the PDF always looks the same
-  // regardless of the on-screen page (practice / mock / result).
   const root = buildPrintRoot(opts);
   document.body.appendChild(root);
 
   try {
-    // Wait one paint so KaTeX / fonts settle.
+    // Wait for fonts / KaTeX to settle
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    await (document as any).fonts?.ready?.catch?.(() => {});
+    try {
+      await (document as any).fonts?.ready;
+    } catch {
+      /* ignore font load errors */
+    }
 
     const canvas = await html2canvas(root, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
       windowWidth: root.scrollWidth,
+      logging: false,
     });
 
     const pdf = new jsPDF({ unit: "pt", format: "a4" });
@@ -43,7 +46,6 @@ export async function downloadTestPDF(opts: {
     if (imgH <= usableH) {
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, imgW, imgH);
     } else {
-      // Slice the canvas into page-sized chunks
       const pxPerPt = canvas.width / imgW;
       const pageHpx = usableH * pxPerPt;
       let y = 0;
@@ -64,17 +66,50 @@ export async function downloadTestPDF(opts: {
           margin,
           margin,
           imgW,
-          (sliceH / pxPerPt),
+          sliceH / pxPerPt,
         );
         first = false;
         y += sliceH;
       }
     }
 
-    pdf.save(`Student_Helper_${opts.subject || opts.examLevel}.pdf`);
+    const filename = `Student_Helper_${(opts.subject || opts.examLevel).replace(/\s+/g, "_")}.pdf`;
+
+    // Save via blob URL + anchor — works reliably on desktop AND mobile
+    // (iOS Safari, Android Chrome) and bypasses popup blockers that can
+    // break jsPDF's default save() in some browsers.
+    try {
+      const blob = pdf.output("blob");
+      triggerBlobDownload(blob, filename);
+    } catch (blobErr) {
+      console.warn("Blob download failed, falling back to jsPDF.save()", blobErr);
+      try {
+        pdf.save(filename);
+      } catch (saveErr) {
+        console.error("PDF save failed entirely", saveErr);
+        throw new Error("Could not save the PDF on this device.");
+      }
+    }
   } finally {
     root.remove();
   }
+}
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  // Some mobile browsers ignore download on cross-origin URLs; blob: is same-origin.
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  // Give the browser a tick to start the download before revoking
+  setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 function escapeHtml(s: string) {
