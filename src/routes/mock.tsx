@@ -154,7 +154,7 @@ function MockPage() {
             <Button variant="outline" onClick={() => navigate({ to: "/practice" })}>
               View Solutions
             </Button>
-            <Button onClick={() => downloadTestPDF({ questions, examLevel, topic, subject })}>
+            <Button onClick={() => handleDownloadPDF({ questions, examLevel, topic, subject })}>
               <Download className="mr-1 h-4 w-4" /> Download PDF
             </Button>
           </div>
