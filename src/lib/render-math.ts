@@ -13,6 +13,7 @@
 import { useEffect } from "react";
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
+import { renderSmiles } from "@/lib/render-smiles";
 
 const DELIMITERS = [
   { left: "$$", right: "$$", display: true },
@@ -63,6 +64,11 @@ function scheduleRender(root: HTMLElement) {
   requestAnimationFrame(() => {
     scheduled = false;
     renderMath(root);
+    try {
+      renderSmiles(root);
+    } catch (err) {
+      console.warn("renderSmiles failed", err);
+    }
   });
 }
 
