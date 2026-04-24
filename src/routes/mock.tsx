@@ -6,6 +6,16 @@ import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
 import { QuestionBody, InlineMathText } from "@/components/QuestionBody";
+import { toast } from "sonner";
+
+async function handleDownloadPDF(args: Parameters<typeof downloadTestPDF>[0]) {
+  try {
+    await downloadTestPDF(args);
+  } catch (err) {
+    console.error("PDF download failed", err);
+    toast.error("Could not save the PDF. Please try again.");
+  }
+}
 
 export const Route = createFileRoute("/mock")({
   head: () => ({ meta: [{ title: "Mock Test — Student Helper by Dhruva" }] }),
