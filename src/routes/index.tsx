@@ -113,6 +113,7 @@ function Home() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<BatchProgress | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Pre-select exam level once based on saved profile preference
@@ -176,9 +177,17 @@ function Home() {
       return;
     }
     setLoading(true);
-    const attempt = async () =>
-      generateQuestions({
-        data: {
+    setProgress({
+      generated: 0,
+      total: count,
+      batchIndex: 1,
+      totalBatches: Math.max(1, Math.ceil(count / 5)),
+      attempt: 1,
+    });
+
+    try {
+      const res = await generateInBatches(
+        {
           examLevel,
           questionType,
           count,
@@ -186,21 +195,23 @@ function Home() {
           imageDataUrl: imageDataUrl || undefined,
           subject: subject || undefined,
         },
-      });
+        (p) => setProgress(p),
+      );
 
-    try {
-      let res = await attempt();
-      // One automatic retry if image-related transient failure
-      if ((res.error || res.questions.length === 0) && imageDataUrl) {
-        await new Promise((r) => setTimeout(r, 800));
-        res = await attempt();
-      }
-      if (res.error || res.questions.length === 0) {
+      if (res.questions.length === 0) {
         toast.error(res.error || "Something went wrong. Please retry.", {
           action: { label: "Retry", onClick: () => onGenerate() },
         });
         return;
       }
+
+      if (res.error) {
+        // Partial success — let the user know but continue with what we have
+        toast.warning(
+          `Got ${res.questions.length} of ${count} questions. ${res.error}`,
+        );
+      }
+
       setSession({
         questions: res.questions,
         examLevel,
@@ -216,6 +227,7 @@ function Home() {
       });
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   }
 
