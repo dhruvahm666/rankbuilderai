@@ -324,7 +324,9 @@ Difficulty must reflect ${data.examLevel} standard, with a ~40/35/25 Easy/Medium
       const raw = Array.isArray(parsed.questions) ? parsed.questions : [];
 
       const questions: GeneratedQuestion[] = [];
+      const allowedDiff = new Set(["Easy", "Medium", "Hard"]);
       for (const q of raw) {
+        const difficulty = allowedDiff.has(q?.difficulty) ? q.difficulty : undefined;
         if (q.type === "MCQ" && Array.isArray(q.options) && q.options.length === 4) {
           const idx = Number(q.correctIndex);
           if (idx >= 0 && idx <= 3) {
@@ -334,6 +336,7 @@ Difficulty must reflect ${data.examLevel} standard, with a ~40/35/25 Easy/Medium
               options: [String(q.options[0]), String(q.options[1]), String(q.options[2]), String(q.options[3])],
               correctIndex: idx as 0 | 1 | 2 | 3,
               solution: String(q.solution || ""),
+              difficulty,
             });
           }
         } else if (q.type === "Numerical" && q.answer != null) {
@@ -342,6 +345,7 @@ Difficulty must reflect ${data.examLevel} standard, with a ~40/35/25 Easy/Medium
             question: String(q.question),
             answer: String(q.answer),
             solution: String(q.solution || ""),
+            difficulty,
           });
         }
       }
