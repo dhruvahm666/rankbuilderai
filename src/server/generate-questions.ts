@@ -156,12 +156,15 @@ export const generateQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: GenerateInput) => {
     if (!input || typeof input !== "object") throw new Error("Invalid input");
     const count = Math.max(5, Math.min(30, Math.floor(Number(input.count) || 5)));
+    const allowedTypes = new Set(["MCQ", "Numerical", "Mixed", "Diagram Based"]);
+    const qt = allowedTypes.has(input.questionType) ? input.questionType : "MCQ";
     return {
       examLevel: input.examLevel,
-      questionType: input.questionType,
+      questionType: qt,
       count,
       topic: (input.topic || "").slice(0, 500),
       imageDataUrl: input.imageDataUrl,
+      subject: input.subject,
     } satisfies GenerateInput;
   })
   .handler(async ({ data }): Promise<GenerateResult> => {
@@ -175,11 +178,20 @@ export const generateQuestions = createServerFn({ method: "POST" })
       | { type: "image_url"; image_url: { url: string } }
     > = [];
 
-    const askText = `Generate exactly ${data.count} ${data.questionType === "Mixed" ? "mixed (MCQ + Numerical)" : data.questionType} questions for ${data.examLevel}.
+    const subjectLine = data.subject ? `Subject: ${data.subject}.` : "";
+    const typeDesc =
+      data.questionType === "Mixed"
+        ? "mixed (MCQ + Numerical)"
+        : data.questionType === "Diagram Based"
+          ? "diagram-based MCQ (each question must reference a labelled [svg] diagram embedded in the stem)"
+          : data.questionType;
+
+    const askText = `Generate exactly ${data.count} ${typeDesc} questions for ${data.examLevel}.
+${subjectLine}
 ${data.topic ? `Topic / context: ${data.topic}` : ""}
 ${data.imageDataUrl ? "An image has been provided — identify the underlying concept and generate questions on the SAME topic, including conceptually related sub-topics from NCERT." : ""}
 
-Difficulty must reflect ${data.examLevel} standard. Return via the return_questions tool.`;
+Difficulty must reflect ${data.examLevel} standard, with a ~40/35/25 Easy/Medium/Hard mix tagged on each question. Return via the return_questions tool.`;
 
     userParts.push({ type: "text", text: askText });
     if (data.imageDataUrl) {
@@ -219,6 +231,11 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
                   answer: {
                     type: "string",
                     description: "For Numerical only — the numerical answer (may include units).",
+                  },
+                  difficulty: {
+                    type: "string",
+                    enum: ["Easy", "Medium", "Hard"],
+                    description: "Difficulty tier for the difficulty pill shown in the UI.",
                   },
                   solution: {
                     type: "string",
