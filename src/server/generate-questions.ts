@@ -127,6 +127,22 @@ OPTIONS (MCQ):
 - Each option is just the value/phrase. Do NOT prefix with "(a)", "A.", "1)" — the UI adds labels.
 - Keep options parallel in style and length where possible.
 
+DIAGRAM BASED (Biology only):
+- When questionType is "Diagram Based", every question is type "MCQ" but tests identification, labelling or interpretation of a biological diagram (cell, neuron, nephron, heart, flower, life cycle, ecosystem chart, etc.).
+- ALWAYS embed a labelled diagram inside the question text using a [svg]...[/svg] block (see "AUTO DIAGRAMS" below). Stem reads like "In the given diagram, the structure marked X represents:" or "Identify the part labelled (B)".
+
+AUTO DIAGRAMS (BEST EFFORT — only when genuinely useful):
+- For Physics (circuits, ray diagrams, force diagrams, v-t graphs), Maths (graphs, geometric figures, coordinate plots) and Biology (labelled cell / organ diagrams) you MAY embed a clean inline SVG diagram inside the question text using a [svg]...[/svg] block on its own line.
+- The SVG MUST: have a viewBox attribute, use stroke="currentColor" and fill="none" or "currentColor" so it adapts to light/dark mode, be self-contained (no external refs), be ≤ 4 KB, and use plain shapes + <text> labels only. NO <script>, NO <foreignObject>, NO external images.
+- Example:
+   [svg]<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="none" stroke-width="1.5"><circle cx="60" cy="60" r="30"/><line x1="90" y1="60" x2="160" y2="60"/><text x="60" y="65" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Lens</text></svg>[/svg]
+- If you cannot draw a clean diagram, OMIT the [svg] block entirely — never insert broken or empty SVG.
+
+DIFFICULTY MIX (every batch):
+- Tag each question with a "difficulty" field: "Easy" | "Medium" | "Hard".
+- Aim for roughly 40% Easy (recall / direct fact / formula), 35% Medium (application / multi-concept / numerical), 25% Hard (HOTS — assertion-reason, case-based, multi-statement, diagram interpretation).
+- Difficulty must still respect the exam level (a "Hard" KCET question is easier than a "Hard" JEE Advanced question).
+
 SOLUTION STYLE:
 - Read like a teacher on a blackboard. Short sentences. Use the SAME textbook formatting rules above.
 - 2–4 numbered or sequential steps focusing on the key concept and the final answer.
