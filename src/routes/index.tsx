@@ -23,6 +23,12 @@ import { useProfile } from "@/lib/profile";
 import { ProfileGate } from "@/components/ProfileGate";
 import { ProfileChip } from "@/components/ProfileChip";
 import type { ExamLevel, Mode, QuestionType, Subject } from "@/lib/types";
+import {
+  examLevelsFor,
+  questionTypesFor,
+  clampExamLevel,
+  clampQuestionType,
+} from "@/lib/exam-options";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,8 +53,7 @@ function HomeRoute() {
   );
 }
 
-const EXAM_LEVELS: ExamLevel[] = ["KCET", "NEET", "JEE Mains", "JEE Advanced"];
-const Q_TYPES: QuestionType[] = ["MCQ", "Numerical", "Mixed"];
+// Exam levels and question types are now derived per-subject via exam-options.ts
 
 interface SubjectMeta {
   name: Subject;
@@ -126,11 +131,24 @@ function Home() {
     else if (profile.exam === "JEE") setExamLevel("JEE Mains");
   }, [profile]);
 
+  // Subject-aware lists (item 12: hide JEE for Biology, hide NEET for Maths,
+  // swap Numerical → Diagram Based for Biology). Applied EVERYWHERE.
+  const EXAM_LEVELS = examLevelsFor(subject);
+  const Q_TYPES = questionTypesFor(subject);
+
   function pickSubject(s: SubjectMeta) {
     setSubject(s.name);
-    // Sensible default exam for the subject (keeps profile pref if set)
-    if (!didPreselect.current) setExamLevel(s.examDefault);
-    if (s.name === "Biology") setQuestionType("MCQ");
+    // Honour profile preference where it's still allowed for this subject.
+    const preferred: ExamLevel | undefined =
+      profile?.exam === "NEET"
+        ? "NEET"
+        : profile?.exam === "KCET"
+          ? "KCET"
+          : profile?.exam === "JEE"
+            ? "JEE Mains"
+            : undefined;
+    setExamLevel((cur) => clampExamLevel(s.name, cur, preferred ?? s.examDefault));
+    setQuestionType((cur) => clampQuestionType(s.name, cur));
     setImageDataUrl(null);
     setImageName("");
     setTopic("");

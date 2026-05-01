@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 
 export type Profession = "Student" | "Lecturer" | "Other";
 export type ExamPrep = "NEET" | "JEE" | "KCET";
+export type TeachSubject = "Physics" | "Chemistry" | "Maths" | "Biology";
 
 export interface UserProfile {
   name: string;
   profession: Profession;
+  /** Student goal — primary exam they're preparing for. */
   exam: ExamPrep;
+  /** Lecturer's teaching subject (only used when profession === "Lecturer"). */
+  teaches?: TeachSubject;
   college: string;
   createdAt: number;
 }

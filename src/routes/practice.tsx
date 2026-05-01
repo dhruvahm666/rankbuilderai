@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
 import { QuestionBody, InlineMathText } from "@/components/QuestionBody";
+import { DifficultyPill } from "@/components/DifficultyPill";
 import { toast } from "sonner";
 
 async function handleDownloadPDF(args: Parameters<typeof downloadTestPDF>[0]) {
@@ -112,8 +113,11 @@ function PracticePage() {
               <article key={i} className="paper-card rounded-xl p-5 md:p-6">
                 <header className="mb-3 flex items-baseline justify-between gap-3">
                   <span className="exam-qnum text-lg">Q{i + 1}.</span>
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
-                    {q.type}
+                  <span className="flex items-center gap-2">
+                    <DifficultyPill difficulty={q.difficulty} />
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
+                      {q.type}
+                    </span>
                   </span>
                 </header>
 

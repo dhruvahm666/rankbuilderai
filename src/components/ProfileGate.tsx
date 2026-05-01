@@ -9,10 +9,17 @@ import {
   useProfile,
   type ExamPrep,
   type Profession,
+  type TeachSubject,
 } from "@/lib/profile";
 
 const PROFESSIONS: Profession[] = ["Student", "Lecturer", "Other"];
-const EXAMS: ExamPrep[] = ["NEET", "JEE", "KCET"];
+const STUDENT_GOALS: { label: string; value: ExamPrep }[] = [
+  { label: "KCET", value: "KCET" },
+  { label: "NEET", value: "NEET" },
+  { label: "JEE Mains", value: "JEE" },
+  { label: "JEE Adv.", value: "JEE" },
+];
+const TEACH_SUBJECTS: TeachSubject[] = ["Physics", "Chemistry", "Maths", "Biology"];
 
 /**
  * Blocks the UI until the user has filled in their one-time profile.
@@ -38,7 +45,10 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
 function ProfileSetup() {
   const [name, setName] = useState("");
   const [profession, setProfession] = useState<Profession>("Student");
-  const [exam, setExam] = useState<ExamPrep>("NEET");
+  // Student goal — one of NEET / JEE / KCET (used for app pre-selection)
+  const [goal, setGoal] = useState<ExamPrep>("NEET");
+  // Lecturer's teaching subject
+  const [teaches, setTeaches] = useState<TeachSubject>("Physics");
   const [college, setCollege] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -64,7 +74,9 @@ function ProfileSetup() {
     saveProfile({
       name: trimmedName,
       profession,
-      exam,
+      // For Lecturers we still store an exam preference (defaults to JEE) for back-compat
+      exam: profession === "Student" ? goal : "JEE",
+      teaches: profession === "Lecturer" ? teaches : undefined,
       college: trimmedCollege,
       createdAt: Date.now(),
     });
@@ -130,27 +142,53 @@ function ProfileSetup() {
             </div>
           </div>
 
-          <div>
-            <Label className="mb-1.5 block text-sm font-semibold">
-              Exam preparing for
-            </Label>
-            <div className="grid grid-cols-3 gap-2">
-              {EXAMS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setExam(e)}
-                  className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-                    exam === e
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background hover:border-primary/40"
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
+          {profession === "Student" && (
+            <div>
+              <Label className="mb-1.5 block text-sm font-semibold">
+                What is your goal?
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {STUDENT_GOALS.map((g) => (
+                  <button
+                    key={g.label}
+                    type="button"
+                    onClick={() => setGoal(g.value)}
+                    className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                      goal === g.value
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {profession === "Lecturer" && (
+            <div>
+              <Label className="mb-1.5 block text-sm font-semibold">
+                Which subject do you teach?
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {TEACH_SUBJECTS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setTeaches(s)}
+                    className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                      teaches === s
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="pf-college" className="mb-1.5 block text-sm font-semibold">

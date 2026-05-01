@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { useGlobalMathRenderer } from "@/lib/render-math";
+import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
 
 import appCss from "../styles.css?url";
 
@@ -80,9 +81,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   useGlobalMathRenderer();
   return (
-    <>
+    <GlobalErrorBoundary>
       <Outlet />
       <Toaster richColors position="top-center" />
-    </>
+    </GlobalErrorBoundary>
   );
 }

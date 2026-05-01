@@ -3,7 +3,7 @@ import type { GeneratedQuestion } from "@/lib/types";
 
 interface GenerateInput {
   examLevel: "KCET" | "NEET" | "JEE Mains" | "JEE Advanced";
-  questionType: "MCQ" | "Numerical" | "Mixed";
+  questionType: "MCQ" | "Numerical" | "Mixed" | "Diagram Based";
   count: number;
   topic?: string;
   imageDataUrl?: string; // data:image/...;base64,...
@@ -127,6 +127,22 @@ OPTIONS (MCQ):
 - Each option is just the value/phrase. Do NOT prefix with "(a)", "A.", "1)" — the UI adds labels.
 - Keep options parallel in style and length where possible.
 
+DIAGRAM BASED (Biology only):
+- When questionType is "Diagram Based", every question is type "MCQ" but tests identification, labelling or interpretation of a biological diagram (cell, neuron, nephron, heart, flower, life cycle, ecosystem chart, etc.).
+- ALWAYS embed a labelled diagram inside the question text using a [svg]...[/svg] block (see "AUTO DIAGRAMS" below). Stem reads like "In the given diagram, the structure marked X represents:" or "Identify the part labelled (B)".
+
+AUTO DIAGRAMS (BEST EFFORT — only when genuinely useful):
+- For Physics (circuits, ray diagrams, force diagrams, v-t graphs), Maths (graphs, geometric figures, coordinate plots) and Biology (labelled cell / organ diagrams) you MAY embed a clean inline SVG diagram inside the question text using a [svg]...[/svg] block on its own line.
+- The SVG MUST: have a viewBox attribute, use stroke="currentColor" and fill="none" or "currentColor" so it adapts to light/dark mode, be self-contained (no external refs), be ≤ 4 KB, and use plain shapes + <text> labels only. NO <script>, NO <foreignObject>, NO external images.
+- Example:
+   [svg]<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="none" stroke-width="1.5"><circle cx="60" cy="60" r="30"/><line x1="90" y1="60" x2="160" y2="60"/><text x="60" y="65" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Lens</text></svg>[/svg]
+- If you cannot draw a clean diagram, OMIT the [svg] block entirely — never insert broken or empty SVG.
+
+DIFFICULTY MIX (every batch):
+- Tag each question with a "difficulty" field: "Easy" | "Medium" | "Hard".
+- Aim for roughly 40% Easy (recall / direct fact / formula), 35% Medium (application / multi-concept / numerical), 25% Hard (HOTS — assertion-reason, case-based, multi-statement, diagram interpretation).
+- Difficulty must still respect the exam level (a "Hard" KCET question is easier than a "Hard" JEE Advanced question).
+
 SOLUTION STYLE:
 - Read like a teacher on a blackboard. Short sentences. Use the SAME textbook formatting rules above.
 - 2–4 numbered or sequential steps focusing on the key concept and the final answer.
@@ -140,12 +156,15 @@ export const generateQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: GenerateInput) => {
     if (!input || typeof input !== "object") throw new Error("Invalid input");
     const count = Math.max(5, Math.min(30, Math.floor(Number(input.count) || 5)));
+    const allowedTypes = new Set(["MCQ", "Numerical", "Mixed", "Diagram Based"]);
+    const qt = allowedTypes.has(input.questionType) ? input.questionType : "MCQ";
     return {
       examLevel: input.examLevel,
-      questionType: input.questionType,
+      questionType: qt,
       count,
       topic: (input.topic || "").slice(0, 500),
       imageDataUrl: input.imageDataUrl,
+      subject: input.subject,
     } satisfies GenerateInput;
   })
   .handler(async ({ data }): Promise<GenerateResult> => {
@@ -159,11 +178,20 @@ export const generateQuestions = createServerFn({ method: "POST" })
       | { type: "image_url"; image_url: { url: string } }
     > = [];
 
-    const askText = `Generate exactly ${data.count} ${data.questionType === "Mixed" ? "mixed (MCQ + Numerical)" : data.questionType} questions for ${data.examLevel}.
+    const subjectLine = data.subject ? `Subject: ${data.subject}.` : "";
+    const typeDesc =
+      data.questionType === "Mixed"
+        ? "mixed (MCQ + Numerical)"
+        : data.questionType === "Diagram Based"
+          ? "diagram-based MCQ (each question must reference a labelled [svg] diagram embedded in the stem)"
+          : data.questionType;
+
+    const askText = `Generate exactly ${data.count} ${typeDesc} questions for ${data.examLevel}.
+${subjectLine}
 ${data.topic ? `Topic / context: ${data.topic}` : ""}
 ${data.imageDataUrl ? "An image has been provided — identify the underlying concept and generate questions on the SAME topic, including conceptually related sub-topics from NCERT." : ""}
 
-Difficulty must reflect ${data.examLevel} standard. Return via the return_questions tool.`;
+Difficulty must reflect ${data.examLevel} standard, with a ~40/35/25 Easy/Medium/Hard mix tagged on each question. Return via the return_questions tool.`;
 
     userParts.push({ type: "text", text: askText });
     if (data.imageDataUrl) {
@@ -203,6 +231,11 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
                   answer: {
                     type: "string",
                     description: "For Numerical only — the numerical answer (may include units).",
+                  },
+                  difficulty: {
+                    type: "string",
+                    enum: ["Easy", "Medium", "Hard"],
+                    description: "Difficulty tier for the difficulty pill shown in the UI.",
                   },
                   solution: {
                     type: "string",
@@ -291,7 +324,9 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
       const raw = Array.isArray(parsed.questions) ? parsed.questions : [];
 
       const questions: GeneratedQuestion[] = [];
+      const allowedDiff = new Set(["Easy", "Medium", "Hard"]);
       for (const q of raw) {
+        const difficulty = allowedDiff.has(q?.difficulty) ? q.difficulty : undefined;
         if (q.type === "MCQ" && Array.isArray(q.options) && q.options.length === 4) {
           const idx = Number(q.correctIndex);
           if (idx >= 0 && idx <= 3) {
@@ -301,6 +336,7 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
               options: [String(q.options[0]), String(q.options[1]), String(q.options[2]), String(q.options[3])],
               correctIndex: idx as 0 | 1 | 2 | 3,
               solution: String(q.solution || ""),
+              difficulty,
             });
           }
         } else if (q.type === "Numerical" && q.answer != null) {
@@ -309,6 +345,7 @@ Difficulty must reflect ${data.examLevel} standard. Return via the return_questi
             question: String(q.question),
             answer: String(q.answer),
             solution: String(q.solution || ""),
+            difficulty,
           });
         }
       }
