@@ -38,7 +38,7 @@ const IGNORED_TAGS = [
 
 // Skip CSS classes that contain pre-rendered math from react-katex, or
 // blocks we never want to scan.
-const IGNORED_CLASSES = /(^|\s)(katex|katex-display|katex-html|exam-block|smiles-rendered)(\s|$)/;
+const IGNORED_CLASSES = /(^|\s)(katex|katex-display|katex-html|exam-block|smiles-rendered|svg-rendered)(\s|$)/;
 
 let scheduled = false;
 
