@@ -10,6 +10,13 @@ export interface BatchInput {
   imageDataUrl?: string;
   subject?: Subject;
 }
+  examLevel: ExamLevel;
+  questionType: QuestionType;
+  count: number;
+  topic?: string;
+  imageDataUrl?: string;
+  subject?: Subject;
+}
 
 export interface BatchProgress {
   generated: number;
