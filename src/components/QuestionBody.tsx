@@ -25,20 +25,58 @@ function blockKindFor(line: string): "reaction" | "structure" | "diagram" | "mat
 
 type Segment =
   | { kind: "prose"; text: string }
-  | { kind: "block"; text: string; isMatch: boolean };
+  | { kind: "block"; text: string; isMatch: boolean }
+  | { kind: "svg"; svg: string };
+
+/** Pull out [svg]...[/svg] blocks first so the line-by-line segmenter doesn't mangle them. */
+const SVG_RE = /\[svg\]([\s\S]*?)\[\/svg\]/gi;
+
+function sanitizeSvg(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed.toLowerCase().startsWith("<svg")) return null;
+  // Strip anything obviously dangerous. Best-effort, never block render on errors.
+  const cleaned = trimmed
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, "")
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
+    .replace(/javascript:/gi, "");
+  if (cleaned.length > 8000) return null;
+  return cleaned;
+}
 
 function segment(text: string): Segment[] {
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  // 1) Extract SVG blocks up-front and replace with placeholders we can re-inject.
+  const svgs: string[] = [];
+  const placeholders: string[] = [];
+  const withoutSvg = text.replace(SVG_RE, (_m, inner) => {
+    const safe = sanitizeSvg(String(inner));
+    if (!safe) return ""; // drop broken svg silently — never show raw code
+    const token = `\u0000SVG${svgs.length}\u0000`;
+    svgs.push(safe);
+    placeholders.push(token);
+    return `\n${token}\n`;
+  });
+
+  const lines = withoutSvg.replace(/\r\n/g, "\n").split("\n");
   const out: Segment[] = [];
   let i = 0;
   while (i < lines.length) {
-    const kind = blockKindFor(lines[i]);
+    const line = lines[i];
+    const svgIdx = placeholders.indexOf(line.trim());
+    if (svgIdx !== -1) {
+      out.push({ kind: "svg", svg: svgs[svgIdx] });
+      i++;
+      continue;
+    }
+    const kind = blockKindFor(line);
     if (kind) {
       const buf: string[] = [];
       const isMatch = kind === "match" || kind === "given";
       while (i < lines.length) {
         const cur = lines[i];
         const next = lines[i + 1] ?? "";
+        if (placeholders.includes(cur.trim())) break;
         const curIsBlock = blockKindFor(cur) !== null || (cur.trim() === "" && blockKindFor(next));
         if (!curIsBlock && cur.trim() !== "") break;
         if (cur.trim() === "" && buf.length === 0) {
@@ -53,8 +91,11 @@ function segment(text: string): Segment[] {
       if (buf.length) out.push({ kind: "block", text: buf.join("\n"), isMatch });
     } else {
       const buf: string[] = [];
-      while (i < lines.length && blockKindFor(lines[i]) === null) {
-        buf.push(lines[i]);
+      while (i < lines.length) {
+        const cur = lines[i];
+        if (placeholders.includes(cur.trim())) break;
+        if (blockKindFor(cur) !== null) break;
+        buf.push(cur);
         i++;
       }
       const txt = buf.join("\n").replace(/\n{3,}/g, "\n\n").trim();
