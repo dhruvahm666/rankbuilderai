@@ -3,7 +3,7 @@ import type { GeneratedQuestion } from "@/lib/types";
 
 interface GenerateInput {
   examLevel: "KCET" | "NEET" | "JEE Mains" | "JEE Advanced";
-  questionType: "MCQ" | "Numerical" | "Mixed";
+  questionType: "MCQ" | "Numerical" | "Mixed" | "Diagram Based";
   count: number;
   topic?: string;
   imageDataUrl?: string; // data:image/...;base64,...
