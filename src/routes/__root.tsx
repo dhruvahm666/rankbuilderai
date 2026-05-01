@@ -81,9 +81,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   useGlobalMathRenderer();
   return (
-    <>
+    <GlobalErrorBoundary>
       <Outlet />
       <Toaster richColors position="top-center" />
-    </>
+    </GlobalErrorBoundary>
   );
 }
