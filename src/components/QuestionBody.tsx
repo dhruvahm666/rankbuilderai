@@ -212,10 +212,21 @@ export function QuestionBody({
       ? "stem text-[14px] leading-7"
       : "stem text-[15px] leading-7";
   return (
-    <div className={`exam-q ${className}`}>
+    <div className={`exam-q ${className}`} style={{ width: "100%", maxWidth: "100%", overflowWrap: "break-word", wordBreak: "break-word" }}>
       {segments.map((seg, idx) => {
         if (seg.kind === "prose") {
           return <ProseWithMath key={idx} text={seg.text} className={proseClass} />;
+        }
+        if (seg.kind === "svg") {
+          return (
+            <div
+              key={idx}
+              className="exam-block svg-rendered my-3 flex justify-center bg-transparent border-0 p-2"
+              style={{ background: "transparent", border: 0 }}
+              // sanitised in segment(); never comes from user input
+              dangerouslySetInnerHTML={{ __html: seg.svg }}
+            />
+          );
         }
         return (
           <Fragment key={idx}>
