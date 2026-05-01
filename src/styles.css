@@ -163,10 +163,20 @@
     line-height: 1.7;
     color: var(--foreground);
     font-feature-settings: "ss01", "cv11", "lnum", "tnum";
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
   }
   .exam-q .stem {
     margin: 0 0 0.85rem 0;
     white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    width: 100%;
+    max-width: 100%;
   }
   /* Centered monospaced block for reactions / structures / diagrams */
   .exam-block {
@@ -186,6 +196,12 @@
   }
   .exam-block.is-match {
     text-align: left;
+  }
+  /* SVG diagram blocks rendered inside questions */
+  .svg-rendered svg {
+    max-width: 100%;
+    height: auto;
+    color: var(--foreground);
   }
   .exam-options {
     list-style: none;
