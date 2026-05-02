@@ -41,7 +41,9 @@ function sanitizeSvg(raw: string): string | null {
     .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
     .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
     .replace(/javascript:/gi, "");
-  if (cleaned.length > 8000) return null;
+  // Allow up to 24 KB so coloured NCERT/MTG biology diagrams (anatomical
+  // labels, multiple shapes, leader lines) fit. Still safely bounded.
+  if (cleaned.length > 24000) return null;
   return cleaned;
 }
 
