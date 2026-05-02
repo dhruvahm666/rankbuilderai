@@ -108,35 +108,57 @@ CHEMISTRY (REACTIONS — STRICT NCERT TEXTBOOK STYLE):
 
    Find: the value of ΔG.
 
-BIOLOGY:
+BIOLOGY (NCERT + MTG FINGERTIPS COLOURED DIAGRAMS — STRICT, PERMANENT):
 - Prefer questions on identification, function, and "match the following" style where useful.
-- When a diagram helps (heart, neuron, flower, DNA, cell, nephron, brain), include a SIMPLE labeled text-diagram inside the question. Example:
-   Diagram (label the parts):
-
-      [Cell Body] —— [Axon] —— [Axon Terminal]
-           |
-       [Dendrites]
-
-- For match-the-following, format as two clean aligned columns inside the question text:
+- Whenever a diagram genuinely helps the question (Botany: dicot/monocot stem, dicot/monocot root, root apex, plant cell, animal cell, cell organelles, flower parts, photosynthesis, vascular bundles. Zoology: human heart, lungs, kidney, nephron, brain, neuron, digestive system, reproductive system, eye, ear, circulatory system, chromosomes, endocrine glands), you MUST embed a clean coloured anatomical SVG diagram inside a [svg]...[/svg] block on its own line. The diagram must look like the NCERT Class 11 / Class 12 textbook printed in colour, in the MTG Fingertips style.
+- The Biology SVG MUST follow ALL of these rules without exception:
+  • viewBox="0 0 500 500" on every Biology diagram.
+  • White background. Clean black outlines (stroke="#000" or "#1a1a1a"), consistent stroke-width (1.5 to 2).
+  • Anatomically correct, proportional. Every distinct part must be its own closed shape — never overlap or merge two different organs/tissues into one path.
+  • Realistic biological colours (use these EXACT fills, never the same colour for two different parts in one diagram):
+      - Xylem → #BEE3F8 (light blue)
+      - Phloem → #FED7AA (light orange)
+      - Cortex → #C6F6D5 (light green)
+      - Epidermis → #FEF3C7 (light yellow)
+      - Pith → #FEE2E2 (light pink-red)
+      - Endodermis → #DDD6FE (light lavender)
+      - Heart oxygenated chambers / arteries → #E53E3E (red)
+      - Heart deoxygenated chambers / veins → #3182CE (blue)
+      - Neuron body → #E9D8FD (light purple) with nucleus #553C9A (dark purple) and yellow nucleolus #F6E05E
+      - Cell membrane → #FBB6CE (light pink)
+      - Nucleus → #6B46C1 (dark purple)
+      - Chloroplast → #38A169 (green) with darker green grana
+      - Mitochondria → #DD6B20 (orange) with darker cristae
+      - Cytoplasm → #F0FFF4 (very light green-grey)
+      - Lungs → #FBB6CE (pink) with #F687B3 bronchi
+      - Kidney cortex → #C53030, medulla → #FBD38D
+      - Brain regions: cerebrum #FBB6CE, cerebellum #B794F4, brainstem #F6AD55
+      - Bones → #FFF5E6, cartilage → #BEE3F8
+      - Glands → #FAF089
+  • EVERY label MUST be placed OUTSIDE its shape, in a clean sans-serif <text> (font-family="Inter, Arial, sans-serif", font-size 11–13, fill="#1a1a1a", stroke="none"). Labels must NEVER overlap each other and NEVER sit on top of any coloured shape.
+  • Each label is connected to its part by a single straight thin leader line (stroke="#1a1a1a", stroke-width="0.8") ending precisely at the part it names. No arrowheads, no curves.
+  • No clutter. Zero decorative elements. No gradients, no filters, no <script>, no <foreignObject>, no external images, no <image>, no <use href="http…">.
+  • Self-contained, ≤ 20 KB.
+- For "Diagram Based" Biology questions the [svg] block is MANDATORY and the stem must reference a labelled part (e.g. "Identify the structure marked A" or "The part labelled X performs the function of:").
+- Match-the-following format (when used) — two clean aligned columns inside the question text:
    Column I              Column II
    (a) Mitochondria      (i) Protein synthesis
    (b) Ribosome          (ii) Powerhouse of cell
    (c) Nucleus           (iii) Genetic control
+
+AUTO DIAGRAMS — Physics & Maths (BEST EFFORT, only when genuinely useful):
+- For Physics (circuits, ray diagrams, force diagrams, v-t graphs) and Maths (graphs, geometric figures, coordinate plots) you MAY embed a clean inline SVG diagram inside the question text using a [svg]...[/svg] block on its own line.
+- The SVG MUST: have a viewBox attribute, use stroke="currentColor" and fill="none" or "currentColor" so it adapts to light/dark mode (Physics/Maths only — Biology uses real biological colours as above), be self-contained, ≤ 4 KB, plain shapes + <text> labels only. NO <script>, NO <foreignObject>, NO external images.
+- Example (Physics):
+   [svg]<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="none" stroke-width="1.5"><circle cx="60" cy="60" r="30"/><line x1="90" y1="60" x2="160" y2="60"/><text x="60" y="65" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Lens</text></svg>[/svg]
+- If you cannot draw a clean diagram, OMIT the [svg] block entirely — never insert broken or empty SVG.
 
 OPTIONS (MCQ):
 - Each option is just the value/phrase. Do NOT prefix with "(a)", "A.", "1)" — the UI adds labels.
 - Keep options parallel in style and length where possible.
 
 DIAGRAM BASED (Biology only):
-- When questionType is "Diagram Based", every question is type "MCQ" but tests identification, labelling or interpretation of a biological diagram (cell, neuron, nephron, heart, flower, life cycle, ecosystem chart, etc.).
-- ALWAYS embed a labelled diagram inside the question text using a [svg]...[/svg] block (see "AUTO DIAGRAMS" below). Stem reads like "In the given diagram, the structure marked X represents:" or "Identify the part labelled (B)".
-
-AUTO DIAGRAMS (BEST EFFORT — only when genuinely useful):
-- For Physics (circuits, ray diagrams, force diagrams, v-t graphs), Maths (graphs, geometric figures, coordinate plots) and Biology (labelled cell / organ diagrams) you MAY embed a clean inline SVG diagram inside the question text using a [svg]...[/svg] block on its own line.
-- The SVG MUST: have a viewBox attribute, use stroke="currentColor" and fill="none" or "currentColor" so it adapts to light/dark mode, be self-contained (no external refs), be ≤ 4 KB, and use plain shapes + <text> labels only. NO <script>, NO <foreignObject>, NO external images.
-- Example:
-   [svg]<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="none" stroke-width="1.5"><circle cx="60" cy="60" r="30"/><line x1="90" y1="60" x2="160" y2="60"/><text x="60" y="65" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Lens</text></svg>[/svg]
-- If you cannot draw a clean diagram, OMIT the [svg] block entirely — never insert broken or empty SVG.
+- When questionType is "Diagram Based", every question is type "MCQ" testing identification, labelling or interpretation of a biological diagram. The coloured NCERT/MTG [svg] block defined in the BIOLOGY section above is MANDATORY in every such question.
 
 DIFFICULTY MIX (every batch):
 - Tag each question with a "difficulty" field: "Easy" | "Medium" | "Hard".

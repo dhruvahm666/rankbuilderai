@@ -1,11 +1,21 @@
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { saveAs } from "file-saver";
+import { toast } from "sonner";
 import type { GeneratedQuestion } from "./types";
 
 /**
- * Render the visible practice/mock questions container into a clean,
- * MTG-style PDF using html2canvas. Falls back to a text-only PDF if no
- * suitable DOM element is found.
+ * PDF Download — Direct Device Storage
+ *
+ * Spec (permanent):
+ *  - Hide all UI buttons/controls before capture
+ *  - html2canvas with scale:2, useCORS:true, allowTaint:true, logging:false
+ *  - canvas.toDataURL("image/jpeg", 0.95) added page-by-page (never raw HTML/text)
+ *  - jsPDF.output("blob")
+ *  - Android/Desktop: createObjectURL + hidden anchor + click + revokeObjectURL
+ *  - iOS: detected via /iPad|iPhone|iPod/ → FileSaver.saveAs
+ *  - "Preparing PDF..." toast while running, "PDF Downloaded ✅" on success
+ *  - 3 silent retries on failure, no raw error ever shown
  */
 export async function downloadTestPDF(opts: {
   questions: GeneratedQuestion[];
@@ -13,24 +23,63 @@ export async function downloadTestPDF(opts: {
   topic?: string;
   subject?: string;
 }) {
+  const FILENAME = "Questions.pdf";
+  const progressId = toast.loading("Preparing PDF...");
+
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await runDownload(opts, FILENAME);
+      toast.success("PDF Downloaded ✅", { id: progressId });
+      return;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`PDF download attempt ${attempt} failed`, err);
+      // exponential backoff before silent retry
+      if (attempt < 3) {
+        await new Promise((r) => setTimeout(r, 400 * Math.pow(2, attempt - 1)));
+      }
+    }
+  }
+
+  console.error("PDF download failed after 3 attempts", lastErr);
+  toast.error("Could not save the PDF. Please try again.", { id: progressId });
+}
+
+async function runDownload(
+  opts: {
+    questions: GeneratedQuestion[];
+    examLevel: string;
+    topic?: string;
+    subject?: string;
+  },
+  filename: string,
+) {
+  // 1) Hide all interactive UI (buttons, inputs, sticky headers) so the
+  //    capture is pure printed content. We toggle a class on <html> and
+  //    restore it in finally.
+  document.documentElement.classList.add("pdf-capturing");
+
+  // 2) Build a clean offscreen render root that mirrors the live questions.
   const root = buildPrintRoot(opts);
   document.body.appendChild(root);
 
   try {
-    // Wait for fonts / KaTeX to settle
+    // Wait for fonts + KaTeX/SVG to settle
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
       await (document as any).fonts?.ready;
     } catch {
-      /* ignore font load errors */
+      /* ignore */
     }
 
     const canvas = await html2canvas(root, {
       scale: 2,
       useCORS: true,
+      allowTaint: true,
+      logging: false,
       backgroundColor: "#ffffff",
       windowWidth: root.scrollWidth,
-      logging: false,
     });
 
     const pdf = new jsPDF({ unit: "pt", format: "a4" });
@@ -41,92 +90,62 @@ export async function downloadTestPDF(opts: {
     const usableH = pageH - margin * 2;
 
     const imgW = usableW;
-    const imgH = (canvas.height * imgW) / canvas.width;
+    const pxPerPt = canvas.width / imgW;
+    const pageHpx = usableH * pxPerPt;
 
-    if (imgH <= usableH) {
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, imgW, imgH);
-    } else {
-      const pxPerPt = canvas.width / imgW;
-      const pageHpx = usableH * pxPerPt;
-      let y = 0;
-      let first = true;
-      while (y < canvas.height) {
-        const sliceH = Math.min(pageHpx, canvas.height - y);
-        const slice = document.createElement("canvas");
-        slice.width = canvas.width;
-        slice.height = sliceH;
-        const ctx = slice.getContext("2d")!;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, slice.width, slice.height);
-        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-        if (!first) pdf.addPage();
-        pdf.addImage(
-          slice.toDataURL("image/jpeg", 0.92),
-          "JPEG",
-          margin,
-          margin,
-          imgW,
-          sliceH / pxPerPt,
-        );
-        first = false;
-        y += sliceH;
-      }
+    let y = 0;
+    let first = true;
+    while (y < canvas.height) {
+      const sliceH = Math.min(pageHpx, canvas.height - y);
+      const slice = document.createElement("canvas");
+      slice.width = canvas.width;
+      slice.height = sliceH;
+      const ctx = slice.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      if (!first) pdf.addPage();
+      // toDataURL JPEG @ 0.95 — added as image, NEVER raw HTML/text
+      const dataUrl = slice.toDataURL("image/jpeg", 0.95);
+      pdf.addImage(dataUrl, "JPEG", margin, margin, imgW, sliceH / pxPerPt);
+      first = false;
+      y += sliceH;
     }
 
-    const filename = `Student_Helper_${(opts.subject || opts.examLevel).replace(/\s+/g, "_")}.pdf`;
+    // 3) Save to device internal storage
+    const blob = pdf.output("blob");
+    const isiOS =
+      typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(navigator as any).MSStream;
 
-    // Save via blob URL + anchor — works reliably on desktop AND mobile
-    // (iOS Safari, Android Chrome) and bypasses popup blockers that can
-    // break jsPDF's default save() in some browsers.
-    try {
-      const blob = pdf.output("blob");
-      triggerBlobDownload(blob, filename);
-    } catch (blobErr) {
-      console.warn("Blob download failed, falling back to jsPDF.save()", blobErr);
-      try {
-        pdf.save(filename);
-      } catch (saveErr) {
-        console.error("PDF save failed entirely", saveErr);
-        throw new Error("Could not save the PDF on this device.");
-      }
+    if (isiOS) {
+      // iOS Safari ignores the anchor download attribute — FileSaver handles it
+      saveAs(blob, filename);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.rel = "noopener";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, 1000);
     }
   } finally {
     root.remove();
+    document.documentElement.classList.remove("pdf-capturing");
   }
 }
 
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.rel = "noopener";
-  // Some mobile browsers ignore download on cross-origin URLs; blob: is same-origin.
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  // Give the browser a tick to start the download before revoking
-  setTimeout(() => {
-    a.remove();
-    URL.revokeObjectURL(url);
-  }, 1000);
-}
-
 function escapeHtml(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/**
- * Render KaTeX-style $...$ / $$...$$ in text by leaving them as Unicode-ish
- * fallback. We use the existing browser KaTeX CSS via dynamic import in the
- * snapshot. To keep PDF clean & self-contained, we render a print sheet
- * containing the same DOM markup our QuestionBody produces (KaTeX HTML),
- * by mounting a temporary React-free DOM mirror that re-uses the live
- * .exam-q nodes when available, falling back to a styled text version.
- */
 function buildPrintRoot(opts: {
   questions: GeneratedQuestion[];
   examLevel: string;
@@ -147,8 +166,6 @@ function buildPrintRoot(opts: {
   root.className = "pdf-print-root";
 
   const labels = ["a", "b", "c", "d"] as const;
-
-  // Try to clone live rendered question articles for richest output (preserves KaTeX)
   const liveArticles = Array.from(document.querySelectorAll<HTMLElement>("article.paper-card"));
 
   const header = `
@@ -169,7 +186,6 @@ function buildPrintRoot(opts: {
     const live = liveArticles[i];
     const liveStem = live?.querySelector(".exam-q");
     if (liveStem) {
-      // Clone live KaTeX-rendered DOM so the PDF matches the screen exactly
       qBlock = `<div class="stem-clone" style="margin:6px 0 10px;">${(liveStem as HTMLElement).outerHTML}</div>`;
     } else {
       qBlock = `<div style="margin:6px 0 10px;white-space:pre-wrap;">${escapeHtml(q.question)}</div>`;
@@ -195,7 +211,7 @@ function buildPrintRoot(opts: {
       </div>`;
   });
 
-  // Answer key page
+  // Answer key
   body += `<div style="page-break-before:always;"></div>`;
   body += `<h2 style="font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:800;margin:6px 0 14px;">Answer Key</h2>`;
   body += `<ol style="padding-left:22px;">`;

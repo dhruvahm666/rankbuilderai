@@ -203,6 +203,18 @@
     height: auto;
     color: var(--foreground);
   }
+
+  /* Hide all interactive UI controls during PDF capture so the rendered
+   * canvas only contains printed exam content. Permanent rule. */
+  .pdf-capturing button,
+  .pdf-capturing input,
+  .pdf-capturing select,
+  .pdf-capturing textarea,
+  .pdf-capturing [role="button"],
+  .pdf-capturing header.sticky,
+  .pdf-capturing .no-print {
+    visibility: hidden !important;
+  }
   .exam-options {
     list-style: none;
     margin: 0.25rem 0 0 0;
