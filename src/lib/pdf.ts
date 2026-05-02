@@ -223,8 +223,17 @@ function buildPrintRoot(opts: {
     if (liveStem) {
       qBlock = `<div class="stem-clone" style="margin:6px 0 10px;">${(liveStem as HTMLElement).outerHTML}</div>`;
     } else {
-      qBlock = `<div style="margin:6px 0 10px;white-space:pre-wrap;">${escapeHtml(q.question)}</div>`;
+      qBlock = `<div style="margin:6px 0 10px;white-space:pre-wrap;">${escapeHtml(stripCode(q.question))}</div>`;
     }
+
+    let opts_html = "";
+    if (q.type === "MCQ") {
+      opts_html = `<ol style="list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px;">` +
+        q.options.map((o, oi) => `
+          <li style="display:flex;gap:10px;padding:6px 8px;border:1px solid #e5dccd;border-radius:6px;">
+            <span style="font-weight:700;color:#9b1d1d;">(${labels[oi]})</span>
+            <span style="flex:1;white-space:pre-wrap;">${escapeHtml(stripCode(o))}</span>
+          </li>`).join("") + `</ol>`;
 
     let opts_html = "";
     if (q.type === "MCQ") {
