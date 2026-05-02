@@ -146,6 +146,41 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/**
+ * Strip every form of "raw code" from a string before it goes into the PDF
+ * fallback path: SVG blocks, SMILES tokens, LaTeX delimiters, markdown
+ * fences, HTML tags. The output is plain readable text only — never any
+ * code-looking residue.
+ */
+function stripCode(s: string): string {
+  if (!s) return "";
+  return s
+    // [svg]...[/svg], [smiles]...[/smiles] (any custom token blocks)
+    .replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "")
+    .replace(/\[smiles\][\s\S]*?\[\/smiles\]/gi, "")
+    // Fenced code / inline code
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`]*)`/g, "$1")
+    // LaTeX delimiters — keep the inner expression, drop the markers
+    .replace(/\$\$([\s\S]*?)\$\$/g, "$1")
+    .replace(/\$([^$\n]+?)\$/g, "$1")
+    .replace(/\\\[([\s\S]*?)\\\]/g, "$1")
+    .replace(/\\\(([\s\S]*?)\\\)/g, "$1")
+    // Common LaTeX commands → readable form
+    .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)")
+    .replace(/\\sqrt\s*\{([^}]*)\}/g, "√($1)")
+    .replace(/\\(?:left|right|displaystyle|text|mathrm|mathbf|operatorname)\s*/g, "")
+    .replace(/\\[a-zA-Z]+/g, "")
+    .replace(/[{}]/g, "")
+    // Stray HTML / SVG tags
+    .replace(/<[^>]+>/g, "")
+    // Collapse whitespace
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+
 function buildPrintRoot(opts: {
   questions: GeneratedQuestion[];
   examLevel: string;
