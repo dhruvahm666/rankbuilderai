@@ -146,6 +146,41 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/**
+ * Strip every form of "raw code" from a string before it goes into the PDF
+ * fallback path: SVG blocks, SMILES tokens, LaTeX delimiters, markdown
+ * fences, HTML tags. The output is plain readable text only — never any
+ * code-looking residue.
+ */
+function stripCode(s: string): string {
+  if (!s) return "";
+  return s
+    // [svg]...[/svg], [smiles]...[/smiles] (any custom token blocks)
+    .replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "")
+    .replace(/\[smiles\][\s\S]*?\[\/smiles\]/gi, "")
+    // Fenced code / inline code
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`]*)`/g, "$1")
+    // LaTeX delimiters — keep the inner expression, drop the markers
+    .replace(/\$\$([\s\S]*?)\$\$/g, "$1")
+    .replace(/\$([^$\n]+?)\$/g, "$1")
+    .replace(/\\\[([\s\S]*?)\\\]/g, "$1")
+    .replace(/\\\(([\s\S]*?)\\\)/g, "$1")
+    // Common LaTeX commands → readable form
+    .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)")
+    .replace(/\\sqrt\s*\{([^}]*)\}/g, "√($1)")
+    .replace(/\\(?:left|right|displaystyle|text|mathrm|mathbf|operatorname)\s*/g, "")
+    .replace(/\\[a-zA-Z]+/g, "")
+    .replace(/[{}]/g, "")
+    // Stray HTML / SVG tags
+    .replace(/<[^>]+>/g, "")
+    // Collapse whitespace
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+
 function buildPrintRoot(opts: {
   questions: GeneratedQuestion[];
   examLevel: string;
@@ -188,7 +223,7 @@ function buildPrintRoot(opts: {
     if (liveStem) {
       qBlock = `<div class="stem-clone" style="margin:6px 0 10px;">${(liveStem as HTMLElement).outerHTML}</div>`;
     } else {
-      qBlock = `<div style="margin:6px 0 10px;white-space:pre-wrap;">${escapeHtml(q.question)}</div>`;
+      qBlock = `<div style="margin:6px 0 10px;white-space:pre-wrap;">${escapeHtml(stripCode(q.question))}</div>`;
     }
 
     let opts_html = "";
@@ -197,7 +232,7 @@ function buildPrintRoot(opts: {
         q.options.map((o, oi) => `
           <li style="display:flex;gap:10px;padding:6px 8px;border:1px solid #e5dccd;border-radius:6px;">
             <span style="font-weight:700;color:#9b1d1d;">(${labels[oi]})</span>
-            <span style="flex:1;white-space:pre-wrap;">${escapeHtml(o)}</span>
+            <span style="flex:1;white-space:pre-wrap;">${escapeHtml(stripCode(o))}</span>
           </li>`).join("") + `</ol>`;
     } else {
       opts_html = `<div style="margin-top:6px;color:#555;font-style:italic;">(Numerical answer)</div>`;
@@ -220,7 +255,7 @@ function buildPrintRoot(opts: {
       q.type === "MCQ"
         ? `(${labels[q.correctIndex]}) ${q.options[q.correctIndex]}`
         : q.answer;
-    body += `<li style="margin-bottom:6px;"><strong>Q${i + 1}:</strong> ${escapeHtml(ans)}</li>`;
+    body += `<li style="margin-bottom:6px;"><strong>Q${i + 1}:</strong> ${escapeHtml(stripCode(ans))}</li>`;
   });
   body += `</ol>`;
 
@@ -232,7 +267,11 @@ function buildPrintRoot(opts: {
     const liveSol = live?.querySelectorAll(".exam-q")[1];
     const solHtml = liveSol
       ? (liveSol as HTMLElement).outerHTML
-      : `<div style="white-space:pre-wrap;">${escapeHtml(q.solution)}</div>`;
+      : `<div style="white-space:pre-wrap;">${escapeHtml(stripCode(q.solution))}</div>`;
+    const liveQ = live?.querySelector(".exam-q");
+    const qHtml = liveQ
+      ? (liveQ as HTMLElement).outerHTML
+      : escapeHtml(stripCode(q.question));
     const ans =
       q.type === "MCQ"
         ? `(${labels[q.correctIndex]}) ${q.options[q.correctIndex]}`
@@ -240,8 +279,8 @@ function buildPrintRoot(opts: {
     body += `
       <div style="page-break-inside:avoid;margin-bottom:16px;">
         <div style="font-weight:700;color:#9b1d1d;margin-bottom:4px;">Q${i + 1}.</div>
-        <div style="margin-bottom:6px;">${live?.querySelector(".exam-q") ? (live!.querySelector(".exam-q") as HTMLElement).outerHTML : escapeHtml(q.question)}</div>
-        <div style="font-weight:600;margin:6px 0;">Answer: ${escapeHtml(ans)}</div>
+        <div style="margin-bottom:6px;">${qHtml}</div>
+        <div style="font-weight:600;margin:6px 0;">Answer: ${escapeHtml(stripCode(ans))}</div>
         <div style="background:#f7f0e3;padding:10px 12px;border-radius:6px;border:1px solid #e5dccd;">${solHtml}</div>
       </div>`;
   });
