@@ -153,6 +153,13 @@ AUTO DIAGRAMS — Physics & Maths (BEST EFFORT, only when genuinely useful):
    [svg]<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="none" stroke-width="1.5"><circle cx="60" cy="60" r="30"/><line x1="90" y1="60" x2="160" y2="60"/><text x="60" y="65" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Lens</text></svg>[/svg]
 - If you cannot draw a clean diagram, OMIT the [svg] block entirely — never insert broken or empty SVG.
 
+OPTIONS (MCQ):
+- Each option is just the value/phrase. Do NOT prefix with "(a)", "A.", "1)" — the UI adds labels.
+- Keep options parallel in style and length where possible.
+
+DIAGRAM BASED (Biology only):
+- When questionType is "Diagram Based", every question is type "MCQ" testing identification, labelling or interpretation of a biological diagram. The coloured NCERT/MTG [svg] block defined in the BIOLOGY section above is MANDATORY in every such question.
+
 DIFFICULTY MIX (every batch):
 - Tag each question with a "difficulty" field: "Easy" | "Medium" | "Hard".
 - Aim for roughly 40% Easy (recall / direct fact / formula), 35% Medium (application / multi-concept / numerical), 25% Hard (HOTS — assertion-reason, case-based, multi-statement, diagram interpretation).
