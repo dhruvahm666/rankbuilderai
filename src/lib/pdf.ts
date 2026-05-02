@@ -255,7 +255,7 @@ function buildPrintRoot(opts: {
       q.type === "MCQ"
         ? `(${labels[q.correctIndex]}) ${q.options[q.correctIndex]}`
         : q.answer;
-    body += `<li style="margin-bottom:6px;"><strong>Q${i + 1}:</strong> ${escapeHtml(ans)}</li>`;
+    body += `<li style="margin-bottom:6px;"><strong>Q${i + 1}:</strong> ${escapeHtml(stripCode(ans))}</li>`;
   });
   body += `</ol>`;
 
@@ -267,7 +267,11 @@ function buildPrintRoot(opts: {
     const liveSol = live?.querySelectorAll(".exam-q")[1];
     const solHtml = liveSol
       ? (liveSol as HTMLElement).outerHTML
-      : `<div style="white-space:pre-wrap;">${escapeHtml(q.solution)}</div>`;
+      : `<div style="white-space:pre-wrap;">${escapeHtml(stripCode(q.solution))}</div>`;
+    const liveQ = live?.querySelector(".exam-q");
+    const qHtml = liveQ
+      ? (liveQ as HTMLElement).outerHTML
+      : escapeHtml(stripCode(q.question));
     const ans =
       q.type === "MCQ"
         ? `(${labels[q.correctIndex]}) ${q.options[q.correctIndex]}`
@@ -275,8 +279,8 @@ function buildPrintRoot(opts: {
     body += `
       <div style="page-break-inside:avoid;margin-bottom:16px;">
         <div style="font-weight:700;color:#9b1d1d;margin-bottom:4px;">Q${i + 1}.</div>
-        <div style="margin-bottom:6px;">${live?.querySelector(".exam-q") ? (live!.querySelector(".exam-q") as HTMLElement).outerHTML : escapeHtml(q.question)}</div>
-        <div style="font-weight:600;margin:6px 0;">Answer: ${escapeHtml(ans)}</div>
+        <div style="margin-bottom:6px;">${qHtml}</div>
+        <div style="font-weight:600;margin:6px 0;">Answer: ${escapeHtml(stripCode(ans))}</div>
         <div style="background:#f7f0e3;padding:10px 12px;border-radius:6px;border:1px solid #e5dccd;">${solHtml}</div>
       </div>`;
   });
