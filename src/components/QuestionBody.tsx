@@ -3,18 +3,32 @@ import { InlineMath, BlockMath } from "react-katex";
 import "katex/dist/katex.min.css";
 
 /**
- * Detects whether a chunk of lines should render as a centered monospace
- * "exam block" (reactions, organic structures, text diagrams, match-the-
- * following columns, "Given:/Find:" data blocks) vs normal prose.
+ * FIXED: Only treat lines as monospace blocks when they are TRULY
+ * non-math content (ASCII diagrams, match columns, given/find data).
+ * Lines containing LaTeX math ($...$, \frac, \int etc.) must ALWAYS
+ * go through the prose+KaTeX path — never into the monospace block.
  */
+
 const REACTION_RE = /[→⇌⇒⇔]/;
-const STRUCTURE_RE = /(CH[₀-₉0-9]?|—|--|⌬|\bC=O\b|\bC≡C\b|\bOH\b|\bNH[₂2]\b|\bNO[₂2]\b)/;
-const DIAGRAM_RE = /[┌┐└┘─│├┤┬┴┼+|=]{2,}|\[[^\]]+\]/;
+const STRUCTURE_RE =
+  /(CH[₀-₉0-9]?|—|--|⌬|\bC=O\b|\bC≡C\b|\bOH\b|\bNH[₂2]\b|\bNO[₂2]\b)/;
+const DIAGRAM_RE = /[┌┐└┘─│├┤┬┴┼]{2,}|\[[^\]]+\]/;
 const GIVEN_RE = /^\s*(Given|Find|Data|To find|Required)\s*:/i;
 const COLUMN_RE = /^\s*(Column\s*I|Column\s*II|\([a-d]\)|\([ivx]+\))/i;
 const MATCH_HEADER_RE = /Column\s*I\s+Column\s*II/i;
 
-function blockKindFor(line: string): "reaction" | "structure" | "diagram" | "match" | "given" | null {
+// FIX: Detect if a line contains LaTeX math — these must NEVER be blocks
+const LATEX_RE =
+  /(\$[^$]+\$|\$\$[\s\S]+?\$\$|\\frac|\\int|\\lim|\\sum|\\alpha|\\beta|\\gamma|\\theta|\\omega|\\lambda|\\mu|\\delta|\\sigma|\\pi|\\infty|\\sqrt|\\vec|\\hat|\\begin\{|\\end\{|\\left|\\right|\\cdot|\\times|\\div|\\pm|\\geq|\\leq|\\neq|\\approx|\\rightarrow|\\Rightarrow|\\\(|\\\[)/;
+
+function hasLatex(line: string): boolean {
+  return LATEX_RE.test(line);
+}
+
+function blockKindFor(
+  line: string,
+): "reaction" | "structure" | "diagram" | "match" | "given" | null {
+  if (hasLatex(line)) return null;
   if (MATCH_HEADER_RE.test(line) || COLUMN_RE.test(line)) return "match";
   if (GIVEN_RE.test(line)) return "given";
   if (REACTION_RE.test(line)) return "reaction";
@@ -28,32 +42,27 @@ type Segment =
   | { kind: "block"; text: string; isMatch: boolean }
   | { kind: "svg"; svg: string };
 
-/** Pull out [svg]...[/svg] blocks first so the line-by-line segmenter doesn't mangle them. */
 const SVG_RE = /\[svg\]([\s\S]*?)\[\/svg\]/gi;
 
 function sanitizeSvg(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed.toLowerCase().startsWith("<svg")) return null;
-  // Strip anything obviously dangerous. Best-effort, never block render on errors.
   const cleaned = trimmed
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, "")
     .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
     .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
     .replace(/javascript:/gi, "");
-  // Allow up to 24 KB so coloured NCERT/MTG biology diagrams (anatomical
-  // labels, multiple shapes, leader lines) fit. Still safely bounded.
   if (cleaned.length > 24000) return null;
   return cleaned;
 }
 
 function segment(text: string): Segment[] {
-  // 1) Extract SVG blocks up-front and replace with placeholders we can re-inject.
   const svgs: string[] = [];
   const placeholders: string[] = [];
   const withoutSvg = text.replace(SVG_RE, (_m, inner) => {
     const safe = sanitizeSvg(String(inner));
-    if (!safe) return ""; // drop broken svg silently — never show raw code
+    if (!safe) return "";
     const token = `\u0000SVG${svgs.length}\u0000`;
     svgs.push(safe);
     placeholders.push(token);
@@ -65,12 +74,14 @@ function segment(text: string): Segment[] {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
+
     const svgIdx = placeholders.indexOf(line.trim());
     if (svgIdx !== -1) {
       out.push({ kind: "svg", svg: svgs[svgIdx] });
       i++;
       continue;
     }
+
     const kind = blockKindFor(line);
     if (kind) {
       const buf: string[] = [];
@@ -79,7 +90,10 @@ function segment(text: string): Segment[] {
         const cur = lines[i];
         const next = lines[i + 1] ?? "";
         if (placeholders.includes(cur.trim())) break;
-        const curIsBlock = blockKindFor(cur) !== null || (cur.trim() === "" && blockKindFor(next));
+        if (hasLatex(cur)) break;
+        const curIsBlock =
+          blockKindFor(cur) !== null ||
+          (cur.trim() === "" && blockKindFor(next) && !hasLatex(next));
         if (!curIsBlock && cur.trim() !== "") break;
         if (cur.trim() === "" && buf.length === 0) {
           i++;
@@ -107,13 +121,6 @@ function segment(text: string): Segment[] {
   return out;
 }
 
-/**
- * Render math segments inside prose. Supports:
- *  - $$...$$  → block math
- *  - $...$    → inline math
- *  - \(...\)  → inline math
- *  - \[...\]  → block math
- */
 type MathPart =
   | { type: "text"; value: string }
   | { type: "inline"; value: string }
@@ -121,8 +128,8 @@ type MathPart =
 
 function parseMath(text: string): MathPart[] {
   const parts: MathPart[] = [];
-  // Combined regex: $$...$$ | \[...\] | $...$ | \(...\)
-  const re = /(\$\$[\s\S]+?\$\$)|(\\\[[\s\S]+?\\\])|(\$[^$\n]+?\$)|(\\\([\s\S]+?\\\))/g;
+  const re =
+    /(\$\$[\s\S]+?\$\$)|(\\\[[\s\S]+?\\\])|(\$[^$\n]+?\$)|(\\\([\s\S]+?\\\))/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
@@ -170,13 +177,13 @@ function ProseWithMath({ text, className }: { text: string; className: string })
   );
 }
 
-/**
- * Inline KaTeX-aware renderer for short strings (option text, answers,
- * table cells). Renders math inside $...$, $$...$$, \(...\), \[...\] and
- * leaves the rest as plain text. No <p> wrapper, so it can sit inside
- * buttons / list items without breaking layout.
- */
-export function InlineMathText({ text, className = "" }: { text: string; className?: string }) {
+export function InlineMathText({
+  text,
+  className = "",
+}: {
+  text: string;
+  className?: string;
+}) {
   const parts = parseMath(text || "");
   return (
     <span className={className}>
@@ -210,14 +217,24 @@ export function QuestionBody({
 }) {
   const segments = segment(text || "");
   const proseClass =
-    size === "sm"
-      ? "stem text-[14px] leading-7"
-      : "stem text-[15px] leading-7";
+    size === "sm" ? "stem text-[14px] leading-7" : "stem text-[15px] leading-7";
+
   return (
-    <div className={`exam-q ${className}`} style={{ width: "100%", maxWidth: "100%", overflowWrap: "break-word", wordBreak: "break-word" }}>
+    <div
+      className={`exam-q ${className}`}
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        overflowWrap: "break-word",
+        wordBreak: "break-word",
+        overflowX: "hidden",
+      }}
+    >
       {segments.map((seg, idx) => {
         if (seg.kind === "prose") {
-          return <ProseWithMath key={idx} text={seg.text} className={proseClass} />;
+          return (
+            <ProseWithMath key={idx} text={seg.text} className={proseClass} />
+          );
         }
         if (seg.kind === "svg") {
           return (
@@ -225,14 +242,15 @@ export function QuestionBody({
               key={idx}
               className="exam-block svg-rendered my-3 flex justify-center bg-transparent border-0 p-2"
               style={{ background: "transparent", border: 0 }}
-              // sanitised in segment(); never comes from user input
               dangerouslySetInnerHTML={{ __html: seg.svg }}
             />
           );
         }
         return (
           <Fragment key={idx}>
-            <pre className={`exam-block ${seg.isMatch ? "is-match" : ""}`}>
+            <pre
+              className={`exam-block ${seg.isMatch ? "is-match" : ""}`}
+            >
               {seg.text}
             </pre>
           </Fragment>
