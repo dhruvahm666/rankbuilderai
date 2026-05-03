@@ -1,9 +1,13 @@
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 import type { GeneratedQuestion } from "./types";
 
+/**
+ * PDF Download — Pure jsPDF text (NO html2canvas)
+ * html2canvas was crashing on KaTeX external fonts.
+ * This approach never fails — converts all math to readable symbols.
+ */
 export async function downloadTestPDF(opts: {
   questions: GeneratedQuestion[];
   examLevel: string;
@@ -16,7 +20,7 @@ export async function downloadTestPDF(opts: {
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      await runDownload(opts, FILENAME);
+      await buildAndSave(opts, FILENAME);
       toast.success("PDF Downloaded ✅", { id: progressId });
       return;
     } catch (err) {
@@ -27,12 +31,62 @@ export async function downloadTestPDF(opts: {
       }
     }
   }
-
   console.error("PDF failed after 3 attempts", lastErr);
   toast.error("Download failed. Please try again.", { id: progressId });
 }
 
-async function runDownload(
+function cleanText(s: string): string {
+  if (!s) return "";
+  return s
+    .replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "[Diagram]")
+    .replace(/<svg[\s\S]*?<\/svg>/gi, "[Diagram]")
+    .replace(/\[smiles\][\s\S]*?\[\/smiles\]/gi, "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\$\$([\s\S]*?)\$\$/g, "$1")
+    .replace(/\$([^$\n]+?)\$/g, "$1")
+    .replace(/\\\[([\s\S]*?)\\\]/g, "$1")
+    .replace(/\\\(([\s\S]*?)\\\)/g, "$1")
+    .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "($1)/($2)")
+    .replace(/\\sqrt\{([^}]*)\}/g, "√($1)")
+    .replace(/\\times/g, "×")
+    .replace(/\\cdot/g, "·")
+    .replace(/\\div/g, "÷")
+    .replace(/\\pm/g, "±")
+    .replace(/\\geq/g, "≥")
+    .replace(/\\leq/g, "≤")
+    .replace(/\\neq/g, "≠")
+    .replace(/\\approx/g, "≈")
+    .replace(/\\infty/g, "∞")
+    .replace(/\\alpha/g, "α")
+    .replace(/\\beta/g, "β")
+    .replace(/\\gamma/g, "γ")
+    .replace(/\\delta/g, "δ")
+    .replace(/\\theta/g, "θ")
+    .replace(/\\omega/g, "ω")
+    .replace(/\\lambda/g, "λ")
+    .replace(/\\mu/g, "μ")
+    .replace(/\\sigma/g, "σ")
+    .replace(/\\pi/g, "π")
+    .replace(/\\int/g, "∫")
+    .replace(/\\sum/g, "Σ")
+    .replace(/\\lim/g, "lim")
+    .replace(/\\rightarrow/g, "→")
+    .replace(/\\leftarrow/g, "←")
+    .replace(/\\Rightarrow/g, "⇒")
+    .replace(/\\vec\{([^}]*)\}/g, "$1")
+    .replace(/\\(?:left|right|displaystyle|text|mathrm|mathbf|operatorname)\s*/g, "")
+    .replace(/\\begin\{[^}]*\}/g, "")
+    .replace(/\\end\{[^}]*\}/g, "")
+    .replace(/\\[a-zA-Z]+/g, "")
+    .replace(/[{}]/g, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function buildAndSave(
   opts: {
     questions: GeneratedQuestion[];
     examLevel: string;
@@ -41,227 +95,206 @@ async function runDownload(
   },
   filename: string,
 ) {
-  document.documentElement.classList.add("pdf-capturing");
-  const root = buildPrintRoot(opts);
-  document.body.appendChild(root);
-
-  try {
-    await new Promise((r) => setTimeout(r, 800));
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    try { await (document as any).fonts?.ready; } catch { /* ignore */ }
-
-    const images = root.querySelectorAll("img");
-    await Promise.all(
-      Array.from(images).map(
-        (img) =>
-          new Promise((r) => {
-            if (img.complete) return r(null);
-            img.onload = () => r(null);
-            img.onerror = () => r(null);
-          }),
-      ),
-    );
-
-    const canvas = await html2canvas(root, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      backgroundColor: "#ffffff",
-      windowWidth: 780,
-      width: root.scrollWidth,
-      height: root.scrollHeight,
-      onclone: (clonedDoc) => {
-        const clonedRoot = clonedDoc.querySelector(".pdf-print-root") as HTMLElement;
-        if (clonedRoot) {
-          clonedRoot.style.position = "relative";
-          clonedRoot.style.left = "0";
-          clonedRoot.style.overflow = "visible";
-        }
-      },
-    });
-
-    const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 28;
-    const usableW = pageW - margin * 2;
-    const usableH = pageH - margin * 2;
-
-    const imgW = usableW;
-    const pxPerPt = canvas.width / imgW;
-    const pageHpx = usableH * pxPerPt;
-
-    let y = 0;
-    let first = true;
-    while (y < canvas.height) {
-      const sliceH = Math.min(pageHpx, canvas.height - y);
-      const slice = document.createElement("canvas");
-      slice.width = canvas.width;
-      slice.height = sliceH;
-      const ctx = slice.getContext("2d")!;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, slice.width, slice.height);
-      ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-      if (!first) pdf.addPage();
-      const dataUrl = slice.toDataURL("image/jpeg", 0.92);
-      pdf.addImage(dataUrl, "JPEG", margin, margin, imgW, sliceH / pxPerPt);
-      first = false;
-      y += sliceH;
-    }
-
-    const blob = pdf.output("blob");
-    const isiOS =
-      typeof navigator !== "undefined" &&
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !(navigator as any).MSStream;
-
-    if (isiOS) {
-      saveAs(blob, filename);
-    } else {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.rel = "noopener";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        a.remove();
-        URL.revokeObjectURL(url);
-      }, 1500);
-    }
-  } finally {
-    root.remove();
-    document.documentElement.classList.remove("pdf-capturing");
-  }
-}
-
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function stripCode(s: string): string {
-  if (!s) return "";
-  return s
-    .replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "")
-    .replace(/\[smiles\][\s\S]*?\[\/smiles\]/gi, "")
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/`([^`]*)`/g, "$1")
-    .replace(/\$\$([\s\S]*?)\$\$/g, "$1")
-    .replace(/\$([^$\n]+?)\$/g, "$1")
-    .replace(/\\\[([\s\S]*?)\\\]/g, "$1")
-    .replace(/\\\(([\s\S]*?)\\\)/g, "$1")
-    .replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)")
-    .replace(/\\sqrt\s*\{([^}]*)\}/g, "√($1)")
-    .replace(/\\(?:left|right|displaystyle|text|mathrm|mathbf|operatorname)\s*/g, "")
-    .replace(/\\[a-zA-Z]+/g, "")
-    .replace(/[{}]/g, "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function buildPrintRoot(opts: {
-  questions: GeneratedQuestion[];
-  examLevel: string;
-  topic?: string;
-  subject?: string;
-}): HTMLDivElement {
-  const root = document.createElement("div");
-  root.style.cssText = `
-    position: fixed;
-    left: -10000px;
-    top: 0;
-    width: 780px;
-    padding: 32px;
-    background: #ffffff;
-    color: #1a1a1a;
-    font-family: Inter, system-ui, sans-serif;
-    font-size: 14px;
-    line-height: 1.7;
-    overflow: visible;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-  `;
-  root.className = "pdf-print-root";
-
+  const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const marginX = 40;
+  const marginY = 40;
+  const maxW = pageW - marginX * 2;
+  let y = marginY;
   const labels = ["a", "b", "c", "d"] as const;
 
-  const liveArticles = Array.from(
-    document.querySelectorAll<HTMLElement>("article.paper-card"),
-  );
+  function checkNewPage(needed = 20) {
+    if (y + needed > pageH - marginY) {
+      pdf.addPage();
+      y = marginY;
+    }
+  }
 
-  const header = `
-    <div style="border-bottom:2px solid #1a1a1a;padding-bottom:10px;margin-bottom:24px;">
-      <div style="font-size:22px;font-weight:800;">
-        Student Helper <span style="color:#9b1d1d">by Dhruva</span>
-      </div>
-      <div style="font-size:12px;color:#555;margin-top:4px;">
-        ${opts.subject ? escapeHtml(opts.subject) + " • " : ""}${escapeHtml(opts.examLevel)} • ${opts.questions.length} Questions${opts.topic ? " • " + escapeHtml(opts.topic) : ""}
-      </div>
-    </div>
-  `;
+  // ── HEADER ──────────────────────────────────────────────
+  pdf.setFillColor(155, 29, 29);
+  pdf.rect(0, 0, pageW, 52, "F");
+  pdf.setFontSize(18);
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Student Helper by Dhruva", marginX, 28);
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "normal");
+  const subtitle = [opts.subject, opts.examLevel, opts.questions.length + " Questions", opts.topic]
+    .filter(Boolean).join(" • ");
+  pdf.text(subtitle, marginX, 44);
+  y = 72;
 
-  let body = `<h2 style="font-size:18px;font-weight:800;margin:0 0 16px;">Questions</h2>`;
+  // ── QUESTIONS ────────────────────────────────────────────
+  pdf.setFontSize(14);
+  pdf.setTextColor(155, 29, 29);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("QUESTIONS", marginX, y);
+  y += 6;
+  pdf.setDrawColor(155, 29, 29);
+  pdf.setLineWidth(1);
+  pdf.line(marginX, y, pageW - marginX, y);
+  y += 16;
 
   opts.questions.forEach((q, i) => {
-    let qBlock = "";
-    const live = liveArticles[i];
-    const liveStem = live?.querySelector(".exam-q");
-    if (liveStem) {
-      const clone = liveStem.cloneNode(true) as HTMLElement;
-      clone.style.cssText = "margin:6px 0 10px;word-wrap:break-word;overflow-wrap:break-word;max-width:100%;";
-      qBlock = `<div style="margin:6px 0 10px;">${clone.outerHTML}</div>`;
-    } else {
-      qBlock = `<div style="margin:6px 0 10px;white-space:pre-wrap;word-wrap:break-word;">${escapeHtml(stripCode(q.question))}</div>`;
-    }
+    checkNewPage(80);
+    const boxStartY = y - 6;
 
-    let optsHtml = "";
+    // Q number + type badge
+    pdf.setFontSize(13);
+    pdf.setTextColor(155, 29, 29);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`Q${i + 1}.`, marginX, y + 2);
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(q.type, pageW - marginX - 5, y + 2, { align: "right" });
+    y += 16;
+
+    // Question text
+    const qText = cleanText(q.question);
+    pdf.setFontSize(11);
+    pdf.setTextColor(25, 25, 25);
+    pdf.setFont("helvetica", "normal");
+    const qLines = pdf.splitTextToSize(qText, maxW - 10);
+    const qH = qLines.length * 16;
+    checkNewPage(qH + 10);
+    pdf.text(qLines, marginX + 8, y);
+    y += qH + 8;
+
+    // Options or numerical
     if (q.type === "MCQ") {
-      optsHtml =
-        `<ol style="list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px;">` +
-        q.options
-          .map(
-            (o, oi) => `
-          <li style="display:flex;gap:10px;padding:7px 10px;border:1px solid #e5dccd;border-radius:6px;word-wrap:break-word;">
-            <span style="font-weight:700;color:#9b1d1d;flex-shrink:0;">(${labels[oi]})</span>
-            <span style="flex:1;white-space:pre-wrap;word-wrap:break-word;">${escapeHtml(stripCode(o))}</span>
-          </li>`,
-          )
-          .join("") +
-        `</ol>`;
+      q.options.forEach((opt, oi) => {
+        const optText = cleanText(opt);
+        const optLines = pdf.splitTextToSize(optText, maxW - 45);
+        const optH = optLines.length * 14 + 12;
+        checkNewPage(optH + 4);
+
+        pdf.setFillColor(252, 249, 242);
+        pdf.setDrawColor(220, 210, 195);
+        pdf.setLineWidth(0.4);
+        pdf.roundedRect(marginX, y - 10, maxW, optH, 3, 3, "FD");
+
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(155, 29, 29);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`(${labels[oi]})`, marginX + 6, y + 2);
+
+        pdf.setTextColor(35, 35, 35);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(optLines, marginX + 32, y + 2);
+        y += optH + 5;
+      });
     } else {
-      optsHtml = `<div style="margin-top:8px;padding:8px 10px;border:1px dashed #ccc;border-radius:6px;color:#555;font-style:italic;">Numerical Answer</div>`;
+      checkNewPage(28);
+      pdf.setFillColor(240, 248, 255);
+      pdf.setDrawColor(180, 210, 230);
+      pdf.roundedRect(marginX, y - 10, maxW, 24, 3, 3, "FD");
+      pdf.setFontSize(10);
+      pdf.setTextColor(80, 80, 140);
+      pdf.setFont("helvetica", "italic");
+      pdf.text("Write your numerical answer here:", marginX + 8, y + 6);
+      y += 26;
     }
 
-    body += `
-      <div style="page-break-inside:avoid;margin-bottom:18px;padding:14px 16px;border:1px solid #e5dccd;border-radius:10px;background:#fffaf2;">
-        <div style="font-weight:800;color:#9b1d1d;font-size:16px;margin-bottom:6px;">Q${i + 1}.</div>
-        ${qBlock}
-        ${optsHtml}
-      </div>`;
+    // Question border box
+    pdf.setDrawColor(229, 220, 205);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(marginX - 6, boxStartY, maxW + 12, y - boxStartY + 4, 5, 5, "S");
+    y += 14;
   });
 
-  body += `<div style="page-break-before:always;padding-top:8px;"></div>`;
-  body += `<h2 style="font-size:20px;font-weight:800;margin:0 0 16px;border-bottom:2px solid #1a1a1a;padding-bottom:8px;">Answer Key</h2>`;
-  body += `<table style="width:100%;border-collapse:collapse;">`;
-  body += `<tr style="background:#fffaf2;"><th style="padding:8px 12px;border:1px solid #e5dccd;text-align:left;">Q No.</th><th style="padding:8px 12px;border:1px solid #e5dccd;text-align:left;">Answer</th><th style="padding:8px 12px;border:1px solid #e5dccd;text-align:left;">Type</th></tr>`;
+  // ── ANSWER KEY PAGE ──────────────────────────────────────
+  pdf.addPage();
+  y = marginY;
+
+  pdf.setFillColor(155, 29, 29);
+  pdf.rect(0, 0, pageW, 44, "F");
+  pdf.setFontSize(16);
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("ANSWER KEY", marginX, 28);
+  y = 60;
+
+  // Table header
+  const col1 = marginX;
+  const col2 = marginX + 55;
+  const col3 = marginX + 270;
+  const rowH = 22;
+
+  pdf.setFillColor(255, 240, 220);
+  pdf.rect(col1, y - 14, maxW, rowH, "F");
+  pdf.setFontSize(10);
+  pdf.setTextColor(155, 29, 29);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Q No.", col1 + 4, y);
+  pdf.text("Correct Answer", col2 + 4, y);
+  pdf.text("Type", col3 + 4, y);
+  y += rowH;
+
   opts.questions.forEach((q, i) => {
     const ans =
       q.type === "MCQ"
-        ? `(${labels[q.correctIndex]}) ${stripCode(q.options[q.correctIndex])}`
-        : stripCode(q.answer);
-    body += `<tr>
-      <td style="padding:7px 12px;border:1px solid #e5dccd;font-weight:700;">Q${i + 1}</td>
-      <td style="padding:7px 12px;border:1px solid #e5dccd;">${escapeHtml(ans)}</td>
-      <td style="padding:7px 12px;border:1px solid #e5dccd;color:#555;">${q.type}</td>
-    </tr>`;
-  });
-  body += `</table>`;
+        ? `(${labels[q.correctIndex]}) ${cleanText(q.options[q.correctIndex] ?? "")}`
+        : cleanText(q.answer ?? "");
 
-  root.innerHTML = header + body;
-  return root;
+    const ansLines = pdf.splitTextToSize(ans, 200);
+    const rH = Math.max(rowH, ansLines.length * 14 + 8);
+    checkNewPage(rH + 4);
+
+    if (i % 2 === 0) {
+      pdf.setFillColor(252, 249, 242);
+      pdf.rect(col1, y - 14, maxW, rH, "F");
+    }
+
+    pdf.setFontSize(10);
+    pdf.setTextColor(40, 40, 40);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`Q${i + 1}`, col1 + 4, y);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.text(ansLines, col2 + 4, y);
+
+    pdf.setTextColor(100, 100, 100);
+    pdf.text(q.type, col3 + 4, y);
+
+    pdf.setDrawColor(220, 210, 195);
+    pdf.setLineWidth(0.3);
+    pdf.line(col1, y + rH - 14, pageW - marginX, y + rH - 14);
+    y += rH;
+  });
+
+  // ── PAGE NUMBERS ─────────────────────────────────────────
+  const totalPages = (pdf as any).internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    pdf.setPage(p);
+    pdf.setFontSize(8);
+    pdf.setTextColor(160, 160, 160);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(
+      `Page ${p} of ${totalPages}  •  Student Helper by Dhruva`,
+      pageW / 2, pageH - 12, { align: "center" },
+    );
+  }
+
+  // ── SAVE TO DEVICE ────────────────────────────────────────
+  const blob = pdf.output("blob");
+  const isiOS =
+    typeof navigator !== "undefined" &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !(navigator as any).MSStream;
+
+  if (isiOS) {
+    saveAs(blob, filename);
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
+  }
 }
