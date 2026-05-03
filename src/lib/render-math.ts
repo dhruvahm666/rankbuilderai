@@ -50,7 +50,7 @@ export function renderMath(root: HTMLElement | null = document.body) {
       throwOnError: false,
       strict: false,
       trust: true,
-      output: "html",
+      
       ignoredTags: IGNORED_TAGS,
       ignoredClasses: ["katex", "katex-display", "katex-html", "exam-block"],
     });
