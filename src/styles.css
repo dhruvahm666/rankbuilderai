@@ -190,8 +190,12 @@
     font-size: 13.5px;
     line-height: 1.65;
     text-align: center;
-    white-space: pre;
-    overflow-x: auto;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-x: hidden !important;
+    max-width: 100% !important;
     color: var(--foreground);
   }
   .exam-block.is-match {
