@@ -48,6 +48,9 @@ export function renderMath(root: HTMLElement | null = document.body) {
     renderMathInElement(root, {
       delimiters: DELIMITERS,
       throwOnError: false,
+      strict: false,
+      trust: true,
+      
       ignoredTags: IGNORED_TAGS,
       ignoredClasses: ["katex", "katex-display", "katex-html", "exam-block"],
     });
