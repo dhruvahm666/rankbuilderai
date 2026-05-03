@@ -2,22 +2,16 @@ import { Fragment } from "react";
 import { InlineMath, BlockMath } from "react-katex";
 import "katex/dist/katex.min.css";
 
-/**
- * FIXED: Only treat lines as monospace blocks when they are TRULY
- * non-math content (ASCII diagrams, match columns, given/find data).
- * Lines containing LaTeX math ($...$, \frac, \int etc.) must ALWAYS
- * go through the prose+KaTeX path — never into the monospace block.
- */
+// ─── Reaction / block detectors ──────────────────────────────────────────────
 
-const REACTION_RE = /[→⇌⇒⇔]/;
-const STRUCTURE_RE =
-  /(CH[₀-₉0-9]?|—|--|⌬|\bC=O\b|\bC≡C\b|\bOH\b|\bNH[₂2]\b|\bNO[₂2]\b)/;
+const REACTION_ARROW_RE = /[→⇌⇒⇔]/;
+const STRUCTURE_RE = /(CH[₀-₉0-9]?|—|--|⌬|\bC=O\b|\bC≡C\b|\bOH\b|\bNH[₂2]\b|\bNO[₂2]\b)/;
 const DIAGRAM_RE = /[┌┐└┘─│├┤┬┴┼]{2,}|\[[^\]]+\]/;
 const GIVEN_RE = /^\s*(Given|Find|Data|To find|Required)\s*:/i;
 const COLUMN_RE = /^\s*(Column\s*I|Column\s*II|\([a-d]\)|\([ivx]+\))/i;
 const MATCH_HEADER_RE = /Column\s*I\s+Column\s*II/i;
 
-// FIX: Detect if a line contains LaTeX math — these must NEVER be blocks
+// Detect LaTeX — lines with LaTeX must ALWAYS go to the prose+KaTeX path
 const LATEX_RE =
   /(\$[^$]+\$|\$\$[\s\S]+?\$\$|\\frac|\\int|\\lim|\\sum|\\alpha|\\beta|\\gamma|\\theta|\\omega|\\lambda|\\mu|\\delta|\\sigma|\\pi|\\infty|\\sqrt|\\vec|\\hat|\\begin\{|\\end\{|\\left|\\right|\\cdot|\\times|\\div|\\pm|\\geq|\\leq|\\neq|\\approx|\\rightarrow|\\Rightarrow|\\\(|\\\[)/;
 
@@ -25,17 +19,53 @@ function hasLatex(line: string): boolean {
   return LATEX_RE.test(line);
 }
 
+/**
+ * KEY FIX: Only treat a line as a STANDALONE reaction block when the
+ * reaction arrow appears early in the line with minimal prose before it.
+ *
+ * This prevents lines like:
+ *   "For the reaction 2SO₂(g) + O₂(g) ⇌ 2SO₃(g), the value of Kp is..."
+ * from being sent to the monospace block renderer.
+ *
+ * A standalone reaction looks like:
+ *   "2H₂ + O₂ → 2H₂O"
+ *   "AgNO₃(aq) + NaCl(aq) → AgCl(s) + NaNO₃(aq)"
+ */
+function isStandaloneReaction(line: string): boolean {
+  const arrowIdx = line.search(/[→⇌⇒⇔]/);
+  if (arrowIdx === -1) return false;
+
+  const beforeArrow = line.slice(0, arrowIdx).trim();
+
+  // Strip chemical formula characters from the text before the arrow
+  // If what remains is more than 25 characters of plain English prose,
+  // it's an inline sentence — NOT a standalone reaction block
+  const strippedBefore = beforeArrow
+    .replace(/[A-Z][a-z]?\d*/g, "")          // element symbols
+    .replace(/[₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹+\-\(\)\[\]\s.,]/g, "") // chem chars
+    .trim();
+
+  return strippedBefore.length < 25;
+}
+
 function blockKindFor(
   line: string,
 ): "reaction" | "structure" | "diagram" | "match" | "given" | null {
+  // Lines with LaTeX math → always prose, never a block
   if (hasLatex(line)) return null;
+
   if (MATCH_HEADER_RE.test(line) || COLUMN_RE.test(line)) return "match";
   if (GIVEN_RE.test(line)) return "given";
-  if (REACTION_RE.test(line)) return "reaction";
+
+  // KEY FIX: only standalone reactions become blocks
+  if (REACTION_ARROW_RE.test(line) && isStandaloneReaction(line)) return "reaction";
+
   if (DIAGRAM_RE.test(line)) return "diagram";
   if (STRUCTURE_RE.test(line) && /[—–-]{1,}|⌬/.test(line)) return "structure";
   return null;
 }
+
+// ─── Segment types ───────────────────────────────────────────────────────────
 
 type Segment =
   | { kind: "prose"; text: string }
@@ -72,9 +102,11 @@ function segment(text: string): Segment[] {
   const lines = withoutSvg.replace(/\r\n/g, "\n").split("\n");
   const out: Segment[] = [];
   let i = 0;
+
   while (i < lines.length) {
     const line = lines[i];
 
+    // SVG placeholder
     const svgIdx = placeholders.indexOf(line.trim());
     if (svgIdx !== -1) {
       out.push({ kind: "svg", svg: svgs[svgIdx] });
@@ -95,10 +127,7 @@ function segment(text: string): Segment[] {
           blockKindFor(cur) !== null ||
           (cur.trim() === "" && blockKindFor(next) && !hasLatex(next));
         if (!curIsBlock && cur.trim() !== "") break;
-        if (cur.trim() === "" && buf.length === 0) {
-          i++;
-          continue;
-        }
+        if (cur.trim() === "" && buf.length === 0) { i++; continue; }
         buf.push(cur);
         i++;
         if (cur.trim() === "" && blockKindFor(next) === null) break;
@@ -106,6 +135,7 @@ function segment(text: string): Segment[] {
       while (buf.length && buf[buf.length - 1].trim() === "") buf.pop();
       if (buf.length) out.push({ kind: "block", text: buf.join("\n"), isMatch });
     } else {
+      // Prose path — KaTeX renders all math here
       const buf: string[] = [];
       while (i < lines.length) {
         const cur = lines[i];
@@ -120,6 +150,8 @@ function segment(text: string): Segment[] {
   }
   return out;
 }
+
+// ─── Math parser ─────────────────────────────────────────────────────────────
 
 type MathPart =
   | { type: "text"; value: string }
@@ -150,6 +182,8 @@ function parseMath(text: string): MathPart[] {
   return parts.length ? parts : [{ type: "text", value: text }];
 }
 
+// ─── Renderers ───────────────────────────────────────────────────────────────
+
 function ProseWithMath({ text, className }: { text: string; className: string }) {
   const parts = parseMath(text);
   return (
@@ -157,11 +191,8 @@ function ProseWithMath({ text, className }: { text: string; className: string })
       {parts.map((p, i) => {
         if (p.type === "text") return <Fragment key={i}>{p.value}</Fragment>;
         if (p.type === "inline") {
-          try {
-            return <InlineMath key={i} math={p.value} />;
-          } catch {
-            return <Fragment key={i}>{p.value}</Fragment>;
-          }
+          try { return <InlineMath key={i} math={p.value} />; }
+          catch { return <Fragment key={i}>{p.value}</Fragment>; }
         }
         try {
           return (
@@ -169,14 +200,16 @@ function ProseWithMath({ text, className }: { text: string; className: string })
               <BlockMath math={p.value} />
             </span>
           );
-        } catch {
-          return <Fragment key={i}>{p.value}</Fragment>;
-        }
+        } catch { return <Fragment key={i}>{p.value}</Fragment>; }
       })}
     </p>
   );
 }
 
+/**
+ * Inline KaTeX-aware renderer for option text, answers, table cells.
+ * No <p> wrapper so it sits inside buttons / list items safely.
+ */
 export function InlineMathText({
   text,
   className = "",
@@ -190,17 +223,11 @@ export function InlineMathText({
       {parts.map((p, i) => {
         if (p.type === "text") return <Fragment key={i}>{p.value}</Fragment>;
         if (p.type === "inline") {
-          try {
-            return <InlineMath key={i} math={p.value} />;
-          } catch {
-            return <Fragment key={i}>{p.value}</Fragment>;
-          }
+          try { return <InlineMath key={i} math={p.value} />; }
+          catch { return <Fragment key={i}>{p.value}</Fragment>; }
         }
-        try {
-          return <InlineMath key={i} math={p.value} />;
-        } catch {
-          return <Fragment key={i}>{p.value}</Fragment>;
-        }
+        try { return <InlineMath key={i} math={p.value} />; }
+        catch { return <Fragment key={i}>{p.value}</Fragment>; }
       })}
     </span>
   );
@@ -232,9 +259,7 @@ export function QuestionBody({
     >
       {segments.map((seg, idx) => {
         if (seg.kind === "prose") {
-          return (
-            <ProseWithMath key={idx} text={seg.text} className={proseClass} />
-          );
+          return <ProseWithMath key={idx} text={seg.text} className={proseClass} />;
         }
         if (seg.kind === "svg") {
           return (
@@ -246,11 +271,10 @@ export function QuestionBody({
             />
           );
         }
+        // Standalone reaction / diagram / match block
         return (
           <Fragment key={idx}>
-            <pre
-              className={`exam-block ${seg.isMatch ? "is-match" : ""}`}
-            >
+            <pre className={`exam-block${seg.isMatch ? " is-match" : ""}`}>
               {seg.text}
             </pre>
           </Fragment>
