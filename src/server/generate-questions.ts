@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import type { GeneratedQuestion } from "@/lib/types";
 
 // SECURITY: Lightweight in-memory IP-based rate limiter to prevent abuse of the
@@ -11,8 +10,10 @@ const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 12; // max calls per IP per window
 const rateBuckets = new Map<string, number[]>();
 
-function getClientIp(): string {
+async function getClientIp(): Promise<string> {
   try {
+    // Dynamic import keeps the server-only module out of the client bundle.
+    const { getRequest, getRequestHeader } = await import("@tanstack/react-start/server");
     const req = getRequest();
     const xff = getRequestHeader("x-forwarded-for") || req?.headers.get("x-forwarded-for");
     if (xff) return xff.split(",")[0]!.trim();
