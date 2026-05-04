@@ -156,7 +156,6 @@ export function QuestionBody({ text, className = "", size = "md" }: { text: stri
           <Fragment key={idx}>
             <div
               className={`exam-block${seg.isMatch ? " is-match" : ""}`}
-              style={{ fontFamily: "inherit", fontSize: "inherit", whiteSpace: "pre-wrap", overflowX: "auto", background: "transparent", border: "none", padding: "0.25rem 0", margin: "0.5rem 0" }}
             >
               <ProseWithMath text={seg.text} className={proseClass} />
             </div>

@@ -185,8 +185,8 @@ function PracticePage() {
                   </button>
                 )}
                 {showSol && (
-                  <div className="mt-4 rounded-lg border border-border bg-secondary/40 p-4">
-                    <div className="mb-2 font-display text-xs font-bold uppercase tracking-wider text-primary">
+                  <div className="solution-box mt-4">
+                    <div className="mb-3 font-display text-xs font-bold uppercase tracking-wider text-primary">
                       Solution
                     </div>
                     <QuestionBody text={q.solution} size="sm" />
