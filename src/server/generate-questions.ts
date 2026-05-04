@@ -174,19 +174,52 @@ UNITS: write normally — m/s, m/s², kg, N, mol, J, kJ/mol, K, Pa.
 
 OUTPUT: You MUST respond by calling the "return_questions" tool with the structured questions. Do not return prose. Every "question", "options" entry, "answer" and "solution" string MUST already be in the clean textbook format described above.`;
 
+const ALLOWED_EXAM_LEVELS = new Set(["KCET", "NEET", "JEE Mains", "JEE Advanced"]);
+const ALLOWED_SUBJECTS = new Set(["Physics", "Chemistry", "Maths", "Biology"]);
+const ALLOWED_IMAGE_PREFIX = /^data:image\/(png|jpe?g|webp);base64,/i;
+// ~5 MB raw → ~7 MB base64-encoded. Reject anything larger to prevent abuse.
+const MAX_IMAGE_DATA_URL_LENGTH = 7_000_000;
+
 export const generateQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: GenerateInput) => {
     if (!input || typeof input !== "object") throw new Error("Invalid input");
     const count = Math.max(5, Math.min(30, Math.floor(Number(input.count) || 5)));
     const allowedTypes = new Set(["MCQ", "Numerical", "Mixed", "Diagram Based"]);
     const qt = allowedTypes.has(input.questionType) ? input.questionType : "MCQ";
+
+    // SECURITY: validate examLevel/subject against strict allowlists to prevent
+    // prompt injection via fields that are interpolated into the AI system prompt.
+    if (!ALLOWED_EXAM_LEVELS.has(input.examLevel)) {
+      throw new Error("Invalid examLevel");
+    }
+    let subject: GenerateInput["subject"] = undefined;
+    if (input.subject !== undefined && input.subject !== null) {
+      if (!ALLOWED_SUBJECTS.has(input.subject)) {
+        throw new Error("Invalid subject");
+      }
+      subject = input.subject;
+    }
+
+    // SECURITY: enforce server-side cap on imageDataUrl size and MIME type so
+    // a direct caller cannot bypass the client 5 MB limit or send non-image data.
+    let imageDataUrl: string | undefined = undefined;
+    if (typeof input.imageDataUrl === "string" && input.imageDataUrl.length > 0) {
+      if (input.imageDataUrl.length > MAX_IMAGE_DATA_URL_LENGTH) {
+        throw new Error("Image is too large (max ~5 MB).");
+      }
+      if (!ALLOWED_IMAGE_PREFIX.test(input.imageDataUrl)) {
+        throw new Error("Unsupported image format. Use PNG, JPEG, or WebP.");
+      }
+      imageDataUrl = input.imageDataUrl;
+    }
+
     return {
       examLevel: input.examLevel,
       questionType: qt,
       count,
       topic: (input.topic || "").slice(0, 500),
-      imageDataUrl: input.imageDataUrl,
-      subject: input.subject,
+      imageDataUrl,
+      subject,
     } satisfies GenerateInput;
   })
   .handler(async ({ data }): Promise<GenerateResult> => {
