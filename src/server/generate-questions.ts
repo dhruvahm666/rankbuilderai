@@ -270,6 +270,15 @@ export const generateQuestions = createServerFn({ method: "POST" })
     } satisfies GenerateInput;
   })
   .handler(async ({ data }): Promise<GenerateResult> => {
+    // SECURITY: per-IP rate limit to prevent AI credit exhaustion / scraping.
+    const ip = getClientIp();
+    if (!checkRateLimit(ip)) {
+      return {
+        questions: [],
+        error: "Too many requests. Please wait a moment and try again.",
+      };
+    }
+
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) {
       return { questions: [], error: "AI service not connected. Please check settings." };
