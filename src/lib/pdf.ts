@@ -100,9 +100,8 @@ function drawHeader(state: PageState, title: string, opts: { subject?: string; e
   const { pdf, pageW, marginX } = state;
   
   // Color scheme: Professional dark blue
-  const headerBgColor = [51, 65, 85]; // slate-700
-  const headerTextColor = [255, 255, 255];
-  const accentColor = [59, 130, 246]; // blue-500
+  const headerBgColor: [number, number, number] = [51, 65, 85]; // slate-700
+  const headerTextColor: [number, number, number] = [255, 255, 255];
   
   pdf.setFillColor(...headerBgColor);
   pdf.rect(0, 0, pageW, 60, "F");
@@ -126,8 +125,8 @@ function drawHeader(state: PageState, title: string, opts: { subject?: string; e
 }
 
 function drawSectionTitle(state: PageState, title: string) {
-  const { pdf, marginX, pageW, maxW } = state;
-  const accentColor = [59, 130, 246];
+  const { pdf, marginX, maxW } = state;
+  const accentColor: [number, number, number] = [59, 130, 246];
   
   pdf.setFontSize(16);
   pdf.setTextColor(...accentColor);
@@ -316,7 +315,7 @@ async function buildAndSave(
   // ════════════════════════════════════════════════════════════════
   // SECTION A: QUESTIONS PAGE
   // ════════════════════════════════════════════════════════════════
-  drawHeader(state, "Practice Questions", opts);
+  drawHeader(state, "Practice Questions", { ...opts, totalQuestions: opts.questions.length });
   drawSectionTitle(state, "QUESTIONS");
   
   opts.questions.forEach((q, i) => {
@@ -329,7 +328,7 @@ async function buildAndSave(
   pdf.addPage();
   state.y = marginY;
   
-  drawHeader(state, "Solutions & Explanations", opts);
+  drawHeader(state, "Solutions & Explanations", { ...opts, totalQuestions: opts.questions.length });
   drawSectionTitle(state, "DETAILED SOLUTIONS");
   
   opts.questions.forEach((q, i) => {
