@@ -1,5 +1,52 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import type { GeneratedQuestion } from "@/lib/types";
+
+// SECURITY: Lightweight in-memory IP-based rate limiter to prevent abuse of the
+// AI question generation endpoint (which costs API credits per call). The
+// endpoint must remain unauthenticated because the app uses a profile-only
+// flow rather than Supabase Auth, so a per-IP sliding window is the practical
+// guard against credit exhaustion and automated scraping.
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 12; // max calls per IP per window
+const rateBuckets = new Map<string, number[]>();
+
+function getClientIp(): string {
+  try {
+    const req = getRequest();
+    const xff = getRequestHeader("x-forwarded-for") || req?.headers.get("x-forwarded-for");
+    if (xff) return xff.split(",")[0]!.trim();
+    const cf = getRequestHeader("cf-connecting-ip") || req?.headers.get("cf-connecting-ip");
+    if (cf) return cf.trim();
+    const real = getRequestHeader("x-real-ip") || req?.headers.get("x-real-ip");
+    if (real) return real.trim();
+  } catch {
+    // ignore — fall through to anonymous bucket
+  }
+  return "anonymous";
+}
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const cutoff = now - RATE_LIMIT_WINDOW_MS;
+  const arr = (rateBuckets.get(ip) ?? []).filter((t) => t > cutoff);
+  if (arr.length >= RATE_LIMIT_MAX_REQUESTS) {
+    rateBuckets.set(ip, arr);
+    return false;
+  }
+  arr.push(now);
+  rateBuckets.set(ip, arr);
+  // Opportunistic cleanup so the map doesn't grow forever
+  if (rateBuckets.size > 5000) {
+    for (const [k, v] of rateBuckets) {
+      const filtered = v.filter((t) => t > cutoff);
+      if (filtered.length === 0) rateBuckets.delete(k);
+      else rateBuckets.set(k, filtered);
+    }
+  }
+  return true;
+}
+
 
 interface GenerateInput {
   examLevel: "KCET" | "NEET" | "JEE Mains" | "JEE Advanced";
