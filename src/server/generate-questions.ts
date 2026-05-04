@@ -272,7 +272,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }): Promise<GenerateResult> => {
     // SECURITY: per-IP rate limit to prevent AI credit exhaustion / scraping.
-    const ip = getClientIp();
+    const ip = await getClientIp();
     if (!checkRateLimit(ip)) {
       return {
         questions: [],
