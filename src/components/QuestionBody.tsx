@@ -278,9 +278,18 @@ export function QuestionBody({
         // Standalone reaction / diagram / match block
         return (
           <Fragment key={idx}>
-            <pre className={`exam-block${seg.isMatch ? " is-match" : ""}`}>
-              {seg.text}
-            </pre>
+            <div
+              className={`exam-block${seg.isMatch ? " is-match" : ""}`}
+              style={{
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                whiteSpace: "pre-wrap",
+                background: "transparent",
+                border: "none",
+              }}
+            >
+              <ProseWithMath text={seg.text} className={proseClass} />
+            </div>
           </Fragment>
         );
       })}
