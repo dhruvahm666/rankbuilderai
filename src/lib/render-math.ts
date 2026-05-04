@@ -49,8 +49,11 @@ export function renderMath(root: HTMLElement | null = document.body) {
       delimiters: DELIMITERS,
       throwOnError: false,
       strict: false,
-      trust: true,
-      
+      // SECURITY: trust must be false to prevent XSS via \href{javascript:...},
+      // \url, \htmlId and similar commands that would otherwise render as live
+      // executable links. AI-generated content can be influenced by user input,
+      // so we never grant trust to KaTeX.
+      trust: false,
       ignoredTags: IGNORED_TAGS,
       ignoredClasses: ["katex", "katex-display", "katex-html", "exam-block"],
     });

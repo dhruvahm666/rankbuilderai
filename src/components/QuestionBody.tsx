@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { InlineMath, BlockMath } from "react-katex";
+import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
 
 // ─── Reaction / block detectors ──────────────────────────────────────────────
@@ -77,13 +78,16 @@ const SVG_RE = /\[svg\]([\s\S]*?)\[\/svg\]/gi;
 function sanitizeSvg(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed.toLowerCase().startsWith("<svg")) return null;
-  const cleaned = trimmed
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, "")
-    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
-    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
-    .replace(/javascript:/gi, "");
-  if (cleaned.length > 24000) return null;
+  if (trimmed.length > 32000) return null;
+  // SECURITY: Use DOMPurify with the SVG profile to neutralise every known
+  // SVG XSS vector (event handlers quoted/unquoted, javascript: URLs,
+  // <foreignObject>, <script>, <use href="...">, <animate> abuse, encoded
+  // payloads). Regex-based stripping is bypassable and must not be used.
+  const cleaned = DOMPurify.sanitize(trimmed, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+  });
+  if (!cleaned || !cleaned.trim().toLowerCase().startsWith("<svg")) return null;
+  if (cleaned.length > 32000) return null;
   return cleaned;
 }
 
