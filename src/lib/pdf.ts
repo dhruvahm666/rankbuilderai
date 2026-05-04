@@ -4,9 +4,9 @@ import { toast } from "sonner";
 import type { GeneratedQuestion } from "./types";
 
 /**
- * PDF Download — Pure jsPDF text (NO html2canvas)
- * html2canvas was crashing on KaTeX external fonts.
- * This approach never fails — converts all math to readable symbols.
+ * PDF Download — Professional Multi-Page Layout
+ * Section A: Questions only (1-2 pages)
+ * Section B: Detailed Solutions (separate section)
  */
 export async function downloadTestPDF(opts: {
   questions: GeneratedQuestion[];
@@ -86,6 +86,207 @@ function cleanText(s: string): string {
     .trim();
 }
 
+interface PageState {
+  y: number;
+  pageW: number;
+  pageH: number;
+  marginX: number;
+  marginY: number;
+  maxW: number;
+  pdf: jsPDF;
+}
+
+function drawHeader(state: PageState, title: string, opts: { subject?: string; examLevel: string; topic?: string; totalQuestions: number }) {
+  const { pdf, pageW, marginX } = state;
+  
+  // Color scheme: Professional dark blue
+  const headerBgColor = [51, 65, 85]; // slate-700
+  const headerTextColor = [255, 255, 255];
+  const accentColor = [59, 130, 246]; // blue-500
+  
+  pdf.setFillColor(...headerBgColor);
+  pdf.rect(0, 0, pageW, 60, "F");
+  
+  // Title
+  pdf.setFontSize(20);
+  pdf.setTextColor(...headerTextColor);
+  pdf.setFont("helvetica", "bold");
+  pdf.text(title, marginX, 25);
+  
+  // Metadata subtitle
+  pdf.setFontSize(9);
+  pdf.setTextColor(200, 200, 200);
+  pdf.setFont("helvetica", "normal");
+  const metadata = [opts.subject, opts.examLevel, `${opts.totalQuestions} Questions`, opts.topic]
+    .filter(Boolean)
+    .join(" • ");
+  pdf.text(metadata, marginX, 40);
+  
+  state.y = 75;
+}
+
+function drawSectionTitle(state: PageState, title: string) {
+  const { pdf, marginX, pageW, maxW } = state;
+  const accentColor = [59, 130, 246];
+  
+  pdf.setFontSize(16);
+  pdf.setTextColor(...accentColor);
+  pdf.setFont("helvetica", "bold");
+  pdf.text(title, marginX, state.y);
+  
+  state.y += 6;
+  
+  // Underline
+  pdf.setDrawColor(...accentColor);
+  pdf.setLineWidth(1.5);
+  pdf.line(marginX, state.y, marginX + maxW, state.y);
+  
+  state.y += 16;
+}
+
+function checkNewPage(state: PageState, needed = 20) {
+  if (state.y + needed > state.pageH - state.marginY) {
+    state.pdf.addPage();
+    state.y = state.marginY;
+  }
+}
+
+function drawQuestion(state: PageState, q: GeneratedQuestion, index: number) {
+  const { pdf, marginX, pageW, maxW } = state;
+  const labels = ["a", "b", "c", "d"] as const;
+  
+  checkNewPage(state, 60);
+  
+  const boxStartY = state.y - 4;
+  
+  // Question number and type badge
+  pdf.setFontSize(12);
+  pdf.setTextColor(51, 65, 85);
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`Q${index + 1}.`, marginX, state.y + 2);
+  
+  pdf.setFontSize(8);
+  pdf.setTextColor(100, 100, 100);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(q.type, pageW - marginX - 5, state.y + 2, { align: "right" });
+  
+  state.y += 14;
+  
+  // Question text
+  const qText = cleanText(q.question);
+  pdf.setFontSize(10);
+  pdf.setTextColor(30, 30, 30);
+  pdf.setFont("helvetica", "normal");
+  const qLines = pdf.splitTextToSize(qText, maxW - 8);
+  const qH = qLines.length * 5.5;
+  
+  checkNewPage(state, qH + 15);
+  pdf.text(qLines, marginX + 4, state.y);
+  state.y += qH + 8;
+  
+  // Options or numerical input placeholder
+  if (q.type === "MCQ") {
+    q.options.forEach((opt, oi) => {
+      const optText = cleanText(opt);
+      const optLines = pdf.splitTextToSize(optText, maxW - 50);
+      const optH = Math.max(optLines.length * 5.2 + 6, 14);
+      
+      checkNewPage(state, optH + 4);
+      
+      // Option box background
+      pdf.setFillColor(250, 250, 250);
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(marginX, state.y - 8, maxW, optH, 2, 2, "FD");
+      
+      // Option label
+      pdf.setFontSize(10);
+      pdf.setTextColor(59, 130, 246);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`(${labels[oi]})`, marginX + 4, state.y + 1);
+      
+      // Option text
+      pdf.setTextColor(35, 35, 35);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(optLines, marginX + 28, state.y + 1);
+      
+      state.y += optH + 2;
+    });
+  } else {
+    // Numerical answer space
+    checkNewPage(state, 20);
+    pdf.setFillColor(240, 248, 255);
+    pdf.setDrawColor(180, 210, 230);
+    pdf.setLineWidth(0.4);
+    pdf.roundedRect(marginX, state.y - 8, maxW, 16, 2, 2, "FD");
+    
+    pdf.setFontSize(9);
+    pdf.setTextColor(80, 80, 140);
+    pdf.setFont("helvetica", "italic");
+    pdf.text("[Answer: _____________]", marginX + 4, state.y + 2);
+    
+    state.y += 18;
+  }
+  
+  // Question border
+  pdf.setDrawColor(220, 220, 220);
+  pdf.setLineWidth(0.5);
+  pdf.roundedRect(marginX - 4, boxStartY, maxW + 8, state.y - boxStartY + 2, 4, 4, "S");
+  
+  state.y += 10;
+}
+
+function drawSolution(state: PageState, q: GeneratedQuestion, index: number) {
+  const { pdf, marginX, pageW, maxW } = state;
+  const labels = ["a", "b", "c", "d"] as const;
+  
+  checkNewPage(state, 40);
+  
+  // Solution header
+  pdf.setFontSize(12);
+  pdf.setTextColor(51, 65, 85);
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`Q${index + 1} Solution`, marginX, state.y);
+  
+  state.y += 8;
+  
+  // Separator line
+  pdf.setDrawColor(200, 200, 200);
+  pdf.setLineWidth(0.3);
+  pdf.line(marginX, state.y, marginX + maxW, state.y);
+  
+  state.y += 8;
+  
+  // Solution text
+  const solText = cleanText(q.solution);
+  pdf.setFontSize(9);
+  pdf.setTextColor(40, 40, 40);
+  pdf.setFont("helvetica", "normal");
+  const solLines = pdf.splitTextToSize(solText, maxW - 4);
+  const solH = solLines.length * 5.5;
+  
+  checkNewPage(state, solH + 12);
+  pdf.text(solLines, marginX + 2, state.y);
+  state.y += solH + 10;
+  
+  // Correct answer box
+  const answerLabel = q.type === "MCQ" 
+    ? `Answer: (${labels[q.correctIndex]}) ${cleanText(q.options[q.correctIndex] ?? "")}`
+    : `Answer: ${cleanText(q.answer ?? "")}`;
+  
+  pdf.setFillColor(240, 253, 244);
+  pdf.setDrawColor(34, 197, 94);
+  pdf.setLineWidth(0.5);
+  pdf.roundedRect(marginX, state.y - 8, maxW, 16, 2, 2, "FD");
+  
+  pdf.setFontSize(10);
+  pdf.setTextColor(22, 163, 74);
+  pdf.setFont("helvetica", "bold");
+  pdf.text(answerLabel, marginX + 4, state.y + 2, { maxWidth: maxW - 8 });
+  
+  state.y += 20;
+}
+
 async function buildAndSave(
   opts: {
     questions: GeneratedQuestion[];
@@ -98,186 +299,70 @@ async function buildAndSave(
   const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-  const marginX = 40;
-  const marginY = 40;
+  const marginX = 35;
+  const marginY = 35;
   const maxW = pageW - marginX * 2;
-  let y = marginY;
-  const labels = ["a", "b", "c", "d"] as const;
+  
+  let state: PageState = {
+    y: marginY,
+    pageW,
+    pageH,
+    marginX,
+    marginY,
+    maxW,
+    pdf,
+  };
 
-  function checkNewPage(needed = 20) {
-    if (y + needed > pageH - marginY) {
-      pdf.addPage();
-      y = marginY;
-    }
-  }
-
-  // ── HEADER ──────────────────────────────────────────────
-  pdf.setFillColor(155, 29, 29);
-  pdf.rect(0, 0, pageW, 52, "F");
-  pdf.setFontSize(18);
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Student Helper by Dhruva", marginX, 28);
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "normal");
-  const subtitle = [opts.subject, opts.examLevel, opts.questions.length + " Questions", opts.topic]
-    .filter(Boolean).join(" • ");
-  pdf.text(subtitle, marginX, 44);
-  y = 72;
-
-  // ── QUESTIONS ────────────────────────────────────────────
-  pdf.setFontSize(14);
-  pdf.setTextColor(155, 29, 29);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("QUESTIONS", marginX, y);
-  y += 6;
-  pdf.setDrawColor(155, 29, 29);
-  pdf.setLineWidth(1);
-  pdf.line(marginX, y, pageW - marginX, y);
-  y += 16;
-
+  // ════════════════════════════════════════════════════════════════
+  // SECTION A: QUESTIONS PAGE
+  // ════════════════════════════════════════════════════════════════
+  drawHeader(state, "Practice Questions", opts);
+  drawSectionTitle(state, "QUESTIONS");
+  
   opts.questions.forEach((q, i) => {
-    checkNewPage(80);
-    const boxStartY = y - 6;
-
-    // Q number + type badge
-    pdf.setFontSize(13);
-    pdf.setTextColor(155, 29, 29);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`Q${i + 1}.`, marginX, y + 2);
-    pdf.setFontSize(8);
-    pdf.setTextColor(100, 100, 100);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(q.type, pageW - marginX - 5, y + 2, { align: "right" });
-    y += 16;
-
-    // Question text
-    const qText = cleanText(q.question);
-    pdf.setFontSize(11);
-    pdf.setTextColor(25, 25, 25);
-    pdf.setFont("helvetica", "normal");
-    const qLines = pdf.splitTextToSize(qText, maxW - 10);
-    const qH = qLines.length * 16;
-    checkNewPage(qH + 10);
-    pdf.text(qLines, marginX + 8, y);
-    y += qH + 8;
-
-    // Options or numerical
-    if (q.type === "MCQ") {
-      q.options.forEach((opt, oi) => {
-        const optText = cleanText(opt);
-        const optLines = pdf.splitTextToSize(optText, maxW - 45);
-        const optH = optLines.length * 14 + 12;
-        checkNewPage(optH + 4);
-
-        pdf.setFillColor(252, 249, 242);
-        pdf.setDrawColor(220, 210, 195);
-        pdf.setLineWidth(0.4);
-        pdf.roundedRect(marginX, y - 10, maxW, optH, 3, 3, "FD");
-
-        pdf.setFontSize(10.5);
-        pdf.setTextColor(155, 29, 29);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(`(${labels[oi]})`, marginX + 6, y + 2);
-
-        pdf.setTextColor(35, 35, 35);
-        pdf.setFont("helvetica", "normal");
-        pdf.text(optLines, marginX + 32, y + 2);
-        y += optH + 5;
-      });
-    } else {
-      checkNewPage(28);
-      pdf.setFillColor(240, 248, 255);
-      pdf.setDrawColor(180, 210, 230);
-      pdf.roundedRect(marginX, y - 10, maxW, 24, 3, 3, "FD");
-      pdf.setFontSize(10);
-      pdf.setTextColor(80, 80, 140);
-      pdf.setFont("helvetica", "italic");
-      pdf.text("Write your numerical answer here:", marginX + 8, y + 6);
-      y += 26;
-    }
-
-    // Question border box
-    pdf.setDrawColor(229, 220, 205);
-    pdf.setLineWidth(0.5);
-    pdf.roundedRect(marginX - 6, boxStartY, maxW + 12, y - boxStartY + 4, 5, 5, "S");
-    y += 14;
+    drawQuestion(state, q, i);
   });
 
-  // ── ANSWER KEY PAGE ──────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  // SECTION B: SOLUTIONS PAGE (New Page)
+  // ════════════════════════════════════════════════════════════════
   pdf.addPage();
-  y = marginY;
-
-  pdf.setFillColor(155, 29, 29);
-  pdf.rect(0, 0, pageW, 44, "F");
-  pdf.setFontSize(16);
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("ANSWER KEY", marginX, 28);
-  y = 60;
-
-  // Table header
-  const col1 = marginX;
-  const col2 = marginX + 55;
-  const col3 = marginX + 270;
-  const rowH = 22;
-
-  pdf.setFillColor(255, 240, 220);
-  pdf.rect(col1, y - 14, maxW, rowH, "F");
-  pdf.setFontSize(10);
-  pdf.setTextColor(155, 29, 29);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Q No.", col1 + 4, y);
-  pdf.text("Correct Answer", col2 + 4, y);
-  pdf.text("Type", col3 + 4, y);
-  y += rowH;
-
+  state.y = marginY;
+  
+  drawHeader(state, "Solutions & Explanations", opts);
+  drawSectionTitle(state, "DETAILED SOLUTIONS");
+  
   opts.questions.forEach((q, i) => {
-    const ans =
-      q.type === "MCQ"
-        ? `(${labels[q.correctIndex]}) ${cleanText(q.options[q.correctIndex] ?? "")}`
-        : cleanText(q.answer ?? "");
-
-    const ansLines = pdf.splitTextToSize(ans, 200);
-    const rH = Math.max(rowH, ansLines.length * 14 + 8);
-    checkNewPage(rH + 4);
-
-    if (i % 2 === 0) {
-      pdf.setFillColor(252, 249, 242);
-      pdf.rect(col1, y - 14, maxW, rH, "F");
-    }
-
-    pdf.setFontSize(10);
-    pdf.setTextColor(40, 40, 40);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`Q${i + 1}`, col1 + 4, y);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.text(ansLines, col2 + 4, y);
-
-    pdf.setTextColor(100, 100, 100);
-    pdf.text(q.type, col3 + 4, y);
-
-    pdf.setDrawColor(220, 210, 195);
-    pdf.setLineWidth(0.3);
-    pdf.line(col1, y + rH - 14, pageW - marginX, y + rH - 14);
-    y += rH;
+    drawSolution(state, q, i);
   });
 
-  // ── PAGE NUMBERS ─────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  // PAGE NUMBERS & FOOTER
+  // ════════════════════════════════════════════════════════════════
   const totalPages = (pdf as any).internal.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     pdf.setPage(p);
+    
+    // Footer line
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setLineWidth(0.3);
+    pdf.line(marginX, pageH - 20, pageW - marginX, pageH - 20);
+    
+    // Page number
     pdf.setFontSize(8);
-    pdf.setTextColor(160, 160, 160);
+    pdf.setTextColor(120, 120, 120);
     pdf.setFont("helvetica", "normal");
     pdf.text(
-      `Page ${p} of ${totalPages}  •  Student Helper by Dhruva`,
-      pageW / 2, pageH - 12, { align: "center" },
+      `Page ${p} of ${totalPages}`,
+      pageW / 2,
+      pageH - 10,
+      { align: "center" }
     );
   }
 
-  // ── SAVE TO DEVICE ────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  // SAVE TO DEVICE
+  // ════════════════════════════════════════════════════════════════
   const blob = pdf.output("blob");
   const isiOS =
     typeof navigator !== "undefined" &&
@@ -295,6 +380,9 @@ async function buildAndSave(
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 1500);
   }
 }
