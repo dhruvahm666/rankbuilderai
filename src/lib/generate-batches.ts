@@ -1,4 +1,4 @@
-import { generateQuestions } from "@/server/generate-questions";
+import { generateQuestions } from "@/lib/generate-questions.functions";
 import type { GeneratedQuestion } from "@/lib/types";
 import type { ExamLevel, QuestionType, Subject } from "@/lib/types";
 
