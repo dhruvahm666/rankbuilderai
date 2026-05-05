@@ -200,8 +200,9 @@ DIAGRAM BASED (Biology only):
 
 DIFFICULTY MIX (every batch):
 - Tag each question with a "difficulty" field: "Easy" | "Medium" | "Hard".
-- Aim for roughly 40% Easy (recall / direct fact / formula), 35% Medium (application / multi-concept / numerical), 25% Hard (HOTS — assertion-reason, case-based, multi-statement, diagram interpretation).
-- Difficulty must still respect the exam level (a "Hard" KCET question is easier than a "Hard" JEE Advanced question).
+- Target mix: ~25% Easy (still concept-based, never trivial recall), ~50% Medium (multi-step application), ~25% Hard (HOTS — multi-concept, assertion-reason, data/diagram interpretation, tricky JEE-Advanced-style traps).
+- "Easy" here means easy *for a competitive-exam aspirant*, not easy for a beginner — it should still demand understanding, not memorisation.
+- Difficulty must respect the exam level (a "Hard" KCET/KSET question is easier than a "Hard" JEE Advanced question, but never below standard exam level).
 
 SOLUTION STYLE:
 - Read like a teacher on a blackboard. Short sentences. Use the SAME textbook formatting rules above.
