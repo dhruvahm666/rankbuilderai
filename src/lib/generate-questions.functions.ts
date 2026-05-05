@@ -294,7 +294,7 @@ ${subjectLine}
 ${data.topic ? `Topic / context: ${data.topic}` : ""}
 ${data.imageDataUrl ? "An image has been provided — identify the underlying concept and generate questions on the SAME topic, including conceptually related sub-topics from NCERT." : ""}
 
-Difficulty must reflect ${data.examLevel} standard, with a ~40/35/25 Easy/Medium/Hard mix tagged on each question. Return via the return_questions tool.`;
+Difficulty must reflect real ${data.examLevel} competitive-exam standard — multi-step, conceptual, with strong plausible distractors. NO trivial direct-formula recall questions. Use a ~25/50/25 Easy/Medium/Hard mix tagged on each question, where "Easy" still means concept-based (not trivial). Stay strictly inside the topic and standard syllabus. Return via the return_questions tool.`;
 
     userParts.push({ type: "text", text: askText });
     if (data.imageDataUrl) {
