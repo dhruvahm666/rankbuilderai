@@ -189,11 +189,18 @@ BIOLOGY (NCERT + MTG FINGERTIPS COLOURED DIAGRAMS — STRICT, PERMANENT):
    (c) Nucleus           (iii) Genetic control
 
 AUTO DIAGRAMS — Physics & Maths (BEST EFFORT, only when genuinely useful):
-- For Physics (circuits, ray diagrams, force diagrams, v-t graphs) and Maths (graphs, geometric figures, coordinate plots) you MAY embed a clean inline SVG diagram inside the question text using a [svg]...[/svg] block on its own line.
-- The SVG MUST: have a viewBox attribute, use stroke="currentColor" and fill="none" or "currentColor" so it adapts to light/dark mode (Physics/Maths only — Biology uses real biological colours as above), be self-contained, ≤ 4 KB, plain shapes + <text> labels only. NO <script>, NO <foreignObject>, NO external images.
+- Embed a diagram ONLY when the question CANNOT be understood or solved without a visual (ray diagrams, circuits requiring a layout, specific geometric figures, free-body diagrams, plotted graphs to read off values). For purely numeric or text-only problems, DO NOT add any diagram.
+- For Physics (circuits, ray diagrams, force diagrams, v-t graphs) and Maths (graphs, geometric figures, coordinate plots) embed a clean inline SVG diagram inside the question text using a [svg]...[/svg] block on its own line.
+- The SVG MUST: include xmlns="http://www.w3.org/2000/svg" and a viewBox attribute, use stroke="currentColor" and fill="none" or "currentColor" so it adapts to light/dark mode (Physics/Maths only — Biology uses real biological colours as above), set preserveAspectRatio="xMidYMid meet", use vector primitives only (line, path, circle, rect, polyline, polygon, text), and stay self-contained ≤ 4 KB. NO <script>, NO <foreignObject>, NO <image>, NO external URLs, NO raster (PNG/JPG) embeds, NO base64 images.
+- Labels must use <text> (font-family="Inter, Arial, sans-serif", font-size 10–12, fill="currentColor", stroke="none") and must NEVER overlap the figure or other labels. Leave clear padding inside the viewBox.
 - Example (Physics):
    [svg]<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="none" stroke-width="1.5"><circle cx="60" cy="60" r="30"/><line x1="90" y1="60" x2="160" y2="60"/><text x="60" y="65" text-anchor="middle" fill="currentColor" stroke="none" font-size="10">Lens</text></svg>[/svg]
-- If you cannot draw a clean diagram, OMIT the [svg] block entirely — never insert broken or empty SVG.
+- If you cannot draw a clean, accurate diagram, OMIT the [svg] block entirely — never insert broken, empty, or decorative SVG.
+
+DIAGRAM NECESSITY (GLOBAL — applies to every subject):
+- A diagram (Biology [svg], Physics/Maths [svg], or Chemistry [smiles]) MUST be added ONLY when the visual is essential to answer the question. Never add diagrams for decoration or to "make it look textbook-ish".
+- Exception: Biology questions whose questionType is "Diagram Based" — the [svg] is mandatory there.
+- Every embedded SVG must be high-resolution vector, lightweight, label-clean, and free of overlapping elements. No raster images anywhere.
 
 OPTIONS (MCQ):
 - Each option is just the value/phrase. Do NOT prefix with "(a)", "A.", "1)" — the UI adds labels.
