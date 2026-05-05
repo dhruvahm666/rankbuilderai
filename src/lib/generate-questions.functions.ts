@@ -65,11 +65,17 @@ CORE RULES:
 - Test understanding, application, and conceptual reasoning — NOT rote theory.
 - Keep difficulty fully intact. NEVER simplify the concept — only simplify the wording and formatting.
 
-DIFFICULTY (must match real exam level):
-- KCET → Moderate
-- NEET → Moderate to slightly high
-- JEE Mains → Moderate to high (application + multi-step)
-- JEE Advanced → High (conceptual depth, tricky, multi-concept)
+DIFFICULTY (JEE / KCET / KSET COMPETITIVE STANDARD — STRICT):
+- Every question must feel like a real competitive-exam problem from a printed Arihant / MTG / Cengage book. NO trivial single-line direct-formula plug-ins.
+- Every question must require AT LEAST ONE of: (a) multi-step reasoning, (b) combining 2+ concepts, (c) careful conceptual discrimination between close options, (d) interpretation of a diagram/graph/data, or (e) assertion-reason / statement-analysis / case-based logic.
+- Distractors in MCQs must be strong and plausible — typical student traps (sign error, unit error, common misconception, off-by-one, wrong formula choice). Never use obviously absurd options.
+- Exam-level calibration:
+   - KCET / KSET → solid moderate to high. Concept + 2–3 step calculation. Avoid one-step recall.
+   - NEET → moderate to high; assertion-reason and multi-statement style allowed.
+   - JEE Mains → high; application + multi-step + conceptual MCQs with strong distractors.
+   - JEE Advanced → very high; multi-concept, multi-step, deep conceptual depth, tricky framing.
+- Stay STRICTLY within the user-supplied topic / image concept and within standard NCERT syllabus. Do NOT pull in out-of-syllabus material to inflate difficulty.
+- Keep wording precise and unambiguous so the question always has exactly one defensible answer. Do not sacrifice correctness or stability for difficulty.
 
 FORMAT:
 - For "MCQ": exactly 4 options with exactly ONE correct answer. Each option must be self-contained and short.
