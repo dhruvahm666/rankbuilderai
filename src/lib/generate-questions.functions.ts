@@ -65,11 +65,17 @@ CORE RULES:
 - Test understanding, application, and conceptual reasoning — NOT rote theory.
 - Keep difficulty fully intact. NEVER simplify the concept — only simplify the wording and formatting.
 
-DIFFICULTY (must match real exam level):
-- KCET → Moderate
-- NEET → Moderate to slightly high
-- JEE Mains → Moderate to high (application + multi-step)
-- JEE Advanced → High (conceptual depth, tricky, multi-concept)
+DIFFICULTY (JEE / KCET / KSET COMPETITIVE STANDARD — STRICT):
+- Every question must feel like a real competitive-exam problem from a printed Arihant / MTG / Cengage book. NO trivial single-line direct-formula plug-ins.
+- Every question must require AT LEAST ONE of: (a) multi-step reasoning, (b) combining 2+ concepts, (c) careful conceptual discrimination between close options, (d) interpretation of a diagram/graph/data, or (e) assertion-reason / statement-analysis / case-based logic.
+- Distractors in MCQs must be strong and plausible — typical student traps (sign error, unit error, common misconception, off-by-one, wrong formula choice). Never use obviously absurd options.
+- Exam-level calibration:
+   - KCET / KSET → solid moderate to high. Concept + 2–3 step calculation. Avoid one-step recall.
+   - NEET → moderate to high; assertion-reason and multi-statement style allowed.
+   - JEE Mains → high; application + multi-step + conceptual MCQs with strong distractors.
+   - JEE Advanced → very high; multi-concept, multi-step, deep conceptual depth, tricky framing.
+- Stay STRICTLY within the user-supplied topic / image concept and within standard NCERT syllabus. Do NOT pull in out-of-syllabus material to inflate difficulty.
+- Keep wording precise and unambiguous so the question always has exactly one defensible answer. Do not sacrifice correctness or stability for difficulty.
 
 FORMAT:
 - For "MCQ": exactly 4 options with exactly ONE correct answer. Each option must be self-contained and short.
@@ -194,8 +200,9 @@ DIAGRAM BASED (Biology only):
 
 DIFFICULTY MIX (every batch):
 - Tag each question with a "difficulty" field: "Easy" | "Medium" | "Hard".
-- Aim for roughly 40% Easy (recall / direct fact / formula), 35% Medium (application / multi-concept / numerical), 25% Hard (HOTS — assertion-reason, case-based, multi-statement, diagram interpretation).
-- Difficulty must still respect the exam level (a "Hard" KCET question is easier than a "Hard" JEE Advanced question).
+- Target mix: ~25% Easy (still concept-based, never trivial recall), ~50% Medium (multi-step application), ~25% Hard (HOTS — multi-concept, assertion-reason, data/diagram interpretation, tricky JEE-Advanced-style traps).
+- "Easy" here means easy *for a competitive-exam aspirant*, not easy for a beginner — it should still demand understanding, not memorisation.
+- Difficulty must respect the exam level (a "Hard" KCET/KSET question is easier than a "Hard" JEE Advanced question, but never below standard exam level).
 
 SOLUTION STYLE:
 - Read like a teacher on a blackboard. Short sentences. Use the SAME textbook formatting rules above.
@@ -287,7 +294,7 @@ ${subjectLine}
 ${data.topic ? `Topic / context: ${data.topic}` : ""}
 ${data.imageDataUrl ? "An image has been provided — identify the underlying concept and generate questions on the SAME topic, including conceptually related sub-topics from NCERT." : ""}
 
-Difficulty must reflect ${data.examLevel} standard, with a ~40/35/25 Easy/Medium/Hard mix tagged on each question. Return via the return_questions tool.`;
+Difficulty must reflect real ${data.examLevel} competitive-exam standard — multi-step, conceptual, with strong plausible distractors. NO trivial direct-formula recall questions. Use a ~25/50/25 Easy/Medium/Hard mix tagged on each question, where "Easy" still means concept-based (not trivial). Stay strictly inside the topic and standard syllabus. Return via the return_questions tool.`;
 
     userParts.push({ type: "text", text: askText });
     if (data.imageDataUrl) {
