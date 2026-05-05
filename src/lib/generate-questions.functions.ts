@@ -114,12 +114,16 @@ MATHEMATICS:
 CHEMISTRY (REACTIONS — STRICT NCERT TEXTBOOK STYLE):
 - When the question concerns a chemical change, ALWAYS auto-generate the FULL BALANCED chemical equation tied to the concept (combustion, neutralisation, displacement, redox, esterification, hydrolysis, dehydration, addition, substitution, etc.). Never describe a reaction in words when an equation can be written.
 - Place every reaction on its OWN line, separated by blank lines from the surrounding prose, so it renders as a centred reaction block. Never inline a full reaction inside a sentence.
-- Use proper arrows: → for forward, ⇌ for equilibrium, ⇒ for "implies". Above-arrow conditions go in parentheses immediately after the arrow, e.g. → (conc. H₂SO₄, Δ).
-- Subscripts must always be Unicode (H₂O, CO₂, SO₄, NH₃, C₆H₁₂O₆), never "H2O" or "H_2O".
-- Charges and oxidation states must always be Unicode superscripts (Na⁺, Cl⁻, Fe²⁺, Fe³⁺, SO₄²⁻, NH₄⁺, MnO₄⁻). Never "Fe^2+" or "Fe2+".
-- Show physical states when standard: (s), (l), (g), (aq). Example: AgNO₃(aq) + NaCl(aq) → AgCl(s) + NaNO₃(aq).
+- ALL chemical formulas, ions, and balanced equations MUST be written using KaTeX with the mhchem extension via \\ce{...}. This guarantees correct subscripts, superscripts (charges), state symbols, arrows, and stoichiometry. Examples:
+   Inline formula:   $\\ce{H2SO4}$, $\\ce{Fe^3+}$, $\\ce{SO4^2-}$, $\\ce{NH4+}$, $\\ce{MnO4-}$
+   Display equation: $$\\ce{2H2 + O2 -> 2H2O}$$
+   Equilibrium:      $$\\ce{N2(g) + 3H2(g) <=> 2NH3(g)}$$
+   With conditions:  $$\\ce{CH3CH2OH ->[\\text{conc. } H2SO4][443\\,K] CH2=CH2 + H2O}$$
+   Precipitation:    $$\\ce{AgNO3(aq) + NaCl(aq) -> AgCl(v) + NaNO3(aq)}$$
+- Inside \\ce{...} use mhchem syntax: -> for forward, <=> for equilibrium, ^ for charges (Fe^3+), state symbols (s)(l)(g)(aq), v for precipitate ↓, ^ for gas ↑. Do NOT pre-Unicode-ify inside \\ce — let mhchem render it.
+- Do NOT mix Unicode subscripts/superscripts inside \\ce{...} (write \\ce{H2O}, not \\ce{H₂O}). Outside \\ce{...} (in plain prose) Unicode H₂O / Fe²⁺ is fine.
 - For equilibrium constants, rate laws, electrode potentials, or the Nernst equation, use KaTeX so it renders as proper math:
-   $$K_c = \\frac{[NH_3]^2}{[N_2][H_2]^3}$$
+   $$K_c = \\frac{[\\ce{NH3}]^2}{[\\ce{N2}][\\ce{H2}]^3}$$
    $$E = E^\\circ - \\frac{0.059}{n} \\log Q$$
 - For organic chemistry, ALWAYS show the structural formula, not just the name. Emit it on its OWN line as a SMILES token wrapped in [smiles]...[/smiles]. The renderer will draw it as a clean 2D NCERT-style structure. Examples:
    [smiles]CCO[/smiles]                       (ethanol)
