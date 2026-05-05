@@ -13,6 +13,8 @@
 import { useEffect } from "react";
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
+// mhchem extension — enables \ce{...} for chemical equations/formulas inside KaTeX
+import "katex/contrib/mhchem";
 import { renderSmiles } from "@/lib/render-smiles";
 
 const DELIMITERS = [
