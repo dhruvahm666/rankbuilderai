@@ -10,7 +10,8 @@ const DIAGRAM_RE = /[┌┐└┘─│├┤┬┴┼]{2,}|\[[^\]]+\]/;
 const GIVEN_RE = /^\s*(Given|Find|Data|To find|Required)\s*:/i;
 const COLUMN_RE = /^\s*(Column\s*I|Column\s*II|\([a-d]\)|\([ivx]+\))/i;
 const MATCH_HEADER_RE = /Column\s*I\s+Column\s*II/i;
-const LATEX_RE = /(\$[^$]+\$|\$\$[\s\S]+?\$\$|\\frac|\\int|\\lim|\\sum|\\alpha|\\beta|\\gamma|\\theta|\\omega|\\lambda|\\mu|\\delta|\\sigma|\\pi|\\infty|\\sqrt|\\vec|\\hat|\\begin\{|\\end\{|\\left|\\right|\\cdot|\\times|\\div|\\pm|\\geq|\\leq|\\neq|\\approx|\\rightarrow|\\Rightarrow|\\\(|\\\[)/;
+const LATEX_RE =
+  /(\$[^$]+\$|\$\$[\s\S]+?\$\$|\\frac|\\int|\\lim|\\sum|\\alpha|\\beta|\\gamma|\\delta|\\theta|\\omega|\\lambda|\\mu|\\sigma|\\pi|\\infty|\\sqrt|\\vec|\\hat|\\begin\{|\\end\{|\\left|\\right|\\cdot|\\times|\\div|\\pm|\\geq|\\leq|\\neq|\\approx|\\rightarrow|\\leftarrow|\\Rightarrow|\\ce\{|\\text\{|\\mathrm\{|\\mathbf\{|\\exp|\\log|\\ln|\\sin|\\cos|\\tan|\\pm|\\mp|\\hbar|\\partial|\\nabla|\\\(|\\\[)/;
 
 function hasLatex(line: string): boolean { return LATEX_RE.test(line); }
 
@@ -102,7 +103,8 @@ type MathPart = { type: "text"; value: string } | { type: "inline"; value: strin
 
 function parseMath(text: string): MathPart[] {
   const parts: MathPart[] = [];
-  const re = /(\$\$[\s\S]+?\$\$)|(\\\[[\s\S]+?\\\])|(\$[^$\n]+?\$)|(\\\([\s\S]+?\\\))/g;
+  const re =
+    /(\$\$[\s\S]+?\$\$)|(\\\[[\s\S]+?\\\])|(\$[^$\n]+?\$)|(\\\([\s\S]+?\\\))/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
@@ -124,7 +126,7 @@ function ProseWithMath({ text, className }: { text: string; className: string })
     <p className={className}>
       {parts.map((p, i) => {
         if (p.type === "text") return <Fragment key={i}>{p.value}</Fragment>;
-        if (p.type === "inline") { try { return <InlineMath key={i} math={p.value} />; } catch { return <Fragment key={i}>{p.value}</Fragment>; } }
+        if (p.type === "inline") { try { return <InlineMath key={i} math={p.value} renderError={() => <span>{p.value}</span>} />; } catch { return <Fragment key={i}>{p.value}</Fragment>; } }
         try { return <span key={i} className="my-2 block"><BlockMath math={p.value} /></span>; }
         catch { return <Fragment key={i}>{p.value}</Fragment>; }
       })}
