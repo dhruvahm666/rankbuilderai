@@ -41,6 +41,23 @@ function cleanText(s: string): string {
     .replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "[Diagram]")
     .replace(/<svg[\s\S]*?<\/svg>/gi, "[Diagram]")
     .replace(/\[smiles\][\s\S]*?\[\/smiles\]/gi, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&[a-zA-Z]+;/g, "")
+    .replace(/\$\$\\ce\{([^}]*)\}\$\$/g, (_, inner) =>
+      inner.replace(/<=>|<->/g, " ⇌ ").replace(/->/g, " → ").replace(/<-/g, " ← ").replace(/\^(\{[^}]*\}|[^\s{])/g, (m: string, p1: string) => p1.startsWith("{") ? p1.slice(1, -1) : p1).replace(/\\/g, "").trim()
+    )
+    .replace(/\$\\ce\{([^}]*)\}/g, (_, inner) =>
+      inner.replace(/<=>|<->/g, " ⇌ ").replace(/->/g, " → ").replace(/<-/g, " ← ").replace(/\^(\{[^}]*\}|[^\s{])/g, (m: string, p1: string) => p1.startsWith("{") ? p1.slice(1, -1) : p1).replace(/\\/g, "").trim()
+    )
+    .replace(/\\ce\{([^}]*)\}/g, (_, inner) =>
+      inner.replace(/<=>|<->/g, " ⇌ ").replace(/->/g, " → ").replace(/<-/g, " ← ").replace(/\^(\{[^}]*\}|[^\s{])/g, (m: string, p1: string) => p1.startsWith("{") ? p1.slice(1, -1) : p1).replace(/\\/g, "").trim()
+    )
+    .replace(/<=>/g, " ⇌ ")
+    .replace(/=>/g, " ⇒ ")
     .replace(/```[\s\S]*?```/g, "")
     .replace(/`([^`]*)`/g, "$1")
     .replace(/\$\$([\s\S]*?)\$\$/g, "$1")
