@@ -1,2 +1,6 @@
 [install]
 saveTextLockfile = false
+
+[build]
+minify = true
+sourcemap = false
