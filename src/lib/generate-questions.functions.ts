@@ -150,6 +150,14 @@ CHEMISTRY (REACTIONS — STRICT NCERT TEXTBOOK STYLE):
 
    Find: the value of ΔG.
 
+CRITICAL RENDERING RULES — STRICTLY FOLLOW:
+- NEVER write \\ce{...} outside of $...$ or $$....$$ delimiters. Always wrap as $\\ce{...}$ or $$\\ce{...}$$.
+- NEVER write \\text{...} outside of $...$ delimiters. Always wrap as $\\text{...}$.
+- NEVER write raw LaTeX commands like \\times, \\frac, \\alpha outside of $...$ delimiters.
+- For equilibrium arrows inside \\ce{}, ALWAYS use <=> NOT ⇌ or →.
+- For exponentials like 10^-3, ALWAYS write as $10^{-3}$ NOT as 10^-3 or 10^{-3} outside delimiters.
+- Every single math expression, chemical formula, and symbol MUST be inside $...$ or $$...$$ delimiters. No exceptions.
+
 BIOLOGY (NCERT + MTG FINGERTIPS COLOURED DIAGRAMS — STRICT, PERMANENT):
 - Prefer questions on identification, function, and "match the following" style where useful.
 - Whenever a diagram genuinely helps the question (Botany: dicot/monocot stem, dicot/monocot root, root apex, plant cell, animal cell, cell organelles, flower parts, photosynthesis, vascular bundles. Zoology: human heart, lungs, kidney, nephron, brain, neuron, digestive system, reproductive system, eye, ear, circulatory system, chromosomes, endocrine glands), you MUST embed a clean coloured anatomical SVG diagram inside a [svg]...[/svg] block on its own line. The diagram must look like the NCERT Class 11 / Class 12 textbook printed in colour, in the MTG Fingertips style.
