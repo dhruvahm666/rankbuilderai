@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import React, { Fragment } from "react";
 import { InlineMath, BlockMath } from "react-katex";
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
@@ -145,7 +145,7 @@ export function InlineMathText({ text, className = "" }: { text: string; classNa
   );
 }
 
-export function QuestionBody({ text, className = "", size = "md" }: { text: string; className?: string; size?: "sm" | "md"; }) {
+export const QuestionBody = React.memo(function QuestionBody({ text, className = "", size = "md" }: { text: string; className?: string; size?: "sm" | "md"; }) {
   const segments = segment(text || "");
   const proseClass = size === "sm" ? "stem text-[14px] leading-7" : "stem text-[15px] leading-7";
   return (
@@ -165,4 +165,4 @@ export function QuestionBody({ text, className = "", size = "md" }: { text: stri
       })}
     </div>
   );
-}
+});

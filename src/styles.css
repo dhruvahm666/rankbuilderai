@@ -1,3 +1,11 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
