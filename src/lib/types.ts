@@ -11,6 +11,7 @@ export interface MCQQuestion {
   correctIndex: 0 | 1 | 2 | 3;
   solution: string;
   difficulty?: Difficulty;
+  diagram?: string;
 }
 
 export interface NumericalQuestion {
@@ -19,6 +20,7 @@ export interface NumericalQuestion {
   answer: string;
   solution: string;
   difficulty?: Difficulty;
+  diagram?: string;
 }
 
 export type GeneratedQuestion = MCQQuestion | NumericalQuestion;
