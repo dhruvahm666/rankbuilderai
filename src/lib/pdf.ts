@@ -32,6 +32,17 @@ export async function downloadTestPDF(opts: {
 function cleanText(s: string): string {
   if (!s) return "";
   let t = s;
+  
+  // Fix ampersand-separated characters like &F&o&r& → For
+  t = t.replace(/(?:&([A-Za-z0-9]);?)+/g, (match) => {
+    return match.replace(/&([A-Za-z0-9]);?/g, '$1');
+  });
+
+  // Fix pattern where single characters are separated by & like &t&h&e&
+  t = t.replace(/\b(?:[A-Za-z0-9]&){2,}[A-Za-z0-9]\b/g, (match) => {
+    return match.replace(/&/g, '');
+  });
+  
   // Remove SVG and SMILES blocks
   t = t.replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "[Diagram]");
   t = t.replace(/<svg[\s\S]*?<\/svg>/gi, "[Diagram]");
@@ -422,6 +433,9 @@ async function buildAndSave(
   filename: string,
 ) {
   const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
+  pdf.setLanguage("en-US");
+  pdf.setFont("helvetica", "normal");
+  
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const marginX = 48;
