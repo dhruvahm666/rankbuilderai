@@ -99,7 +99,7 @@ function cleanText(s: string): string {
     .replace(/\\log/g, "log")
     .replace(/\\ln/g, "ln")
     .replace(/\\sin/g, "sin")
-    .replace(/\\cos/g, "cos)
+    .replace(/\\cos/g, "cos")
     .replace(/\\tan/g, "tan")
     .replace(/\\rightarrow/g, "→")
     .replace(/\\leftarrow/g, "←")
