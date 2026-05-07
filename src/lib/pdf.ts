@@ -33,6 +33,41 @@ function cleanText(s: string): string {
   if (!s) return "";
   let t = s;
 
+  // Convert ALL Unicode special chars to ASCII — jsPDF helvetica cannot render Unicode
+  // Subscript numbers
+  t = t.replace(/₀/g,"0").replace(/₁/g,"1").replace(/₂/g,"2").replace(/₃/g,"3")
+       .replace(/₄/g,"4").replace(/₅/g,"5").replace(/₆/g,"6").replace(/₇/g,"7")
+       .replace(/₈/g,"8").replace(/₉/g,"9");
+  // Superscript numbers
+  t = t.replace(/⁰/g,"^0").replace(/¹/g,"^1").replace(/²/g,"^2").replace(/³/g,"^3")
+       .replace(/⁴/g,"^4").replace(/⁵/g,"^5").replace(/⁶/g,"^6").replace(/⁷/g,"^7")
+       .replace(/⁸/g,"^8").replace(/⁹/g,"^9").replace(/ⁿ/g,"^n");
+  // Superscript signs
+  t = t.replace(/⁺/g,"^+").replace(/⁻/g,"^-");
+  // Greek letters
+  t = t.replace(/α/g,"alpha").replace(/β/g,"beta").replace(/γ/g,"gamma")
+       .replace(/δ/g,"delta").replace(/ε/g,"epsilon").replace(/θ/g,"theta")
+       .replace(/λ/g,"lambda").replace(/μ/g,"mu").replace(/π/g,"pi")
+       .replace(/σ/g,"sigma").replace(/ω/g,"omega").replace(/φ/g,"phi")
+       .replace(/ρ/g,"rho").replace(/η/g,"eta").replace(/τ/g,"tau")
+       .replace(/Δ/g,"Delta").replace(/Σ/g,"Sigma").replace(/Ω/g,"Omega")
+       .replace(/Π/g,"Pi").replace(/Γ/g,"Gamma").replace(/Λ/g,"Lambda");
+  // Arrows
+  t = t.replace(/⇌/g," <=> ").replace(/→/g," -> ").replace(/←/g," <- ")
+       .replace(/⇒/g," => ").replace(/↔/g," <-> ").replace(/⟶/g," -> ");
+  // Math symbols
+  t = t.replace(/×/g,"x").replace(/÷/g,"/").replace(/±/g,"+/-")
+       .replace(/≤/g,"<=").replace(/≥/g,">=").replace(/≠/g,"!=")
+       .replace(/≈/g,"~").replace(/∞/g,"inf").replace(/∫/g,"integral")
+       .replace(/∑/g,"sum").replace(/√/g,"sqrt").replace(/∂/g,"d")
+       .replace(/∇/g,"nabla").replace(/°/g," deg").replace(/·/g,".");
+  // Charges
+  t = t.replace(/⁺/g,"^+").replace(/⁻/g,"^-");
+  // Special dashes
+  t = t.replace(/—/g,"-").replace(/–/g,"-").replace(/…/g,"...");
+  // Remove any remaining non-ASCII characters that would garble jsPDF
+  t = t.replace(/[^\x00-\x7F]/g, "");
+
   // Remove SVG and SMILES blocks
   t = t.replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "[Diagram]");
   t = t.replace(/<svg[\s\S]*?<\/svg>/gi, "[Diagram]");
@@ -146,7 +181,7 @@ function cleanText(s: string): string {
   t = t.replace(/\^\{([^}]*)\}/g, "^($1)");
   t = t.replace(/\^(-?\d+)/g, "^$1");
 
-  // ── MATH SYMBOLS ──────────────────────────────────────────────────────────
+  // ── MATH SYMBOLS ────────────────────────────────────────────────────────
   t = t.replace(/\\times/g, "x");
   t = t.replace(/\\cdot/g, ".");
   t = t.replace(/\\div/g, "/");
@@ -191,7 +226,7 @@ function cleanText(s: string): string {
   t = t.replace(/\\cos/g, "cos");
   t = t.replace(/\\tan/g, "tan");
 
-  // ── FINAL CLEANUP ─────────────────────────────────────────────────────────
+  // ── FINAL CLEANUP ────────────────────────────────────────────────────────
   t = t.replace(/\\vec\{([^}]*)\}/g, "$1");
   t = t.replace(/\\(?:left|right|displaystyle|operatorname)\s*/g, "");
   t = t.replace(/\\[a-zA-Z]+/g, "");
