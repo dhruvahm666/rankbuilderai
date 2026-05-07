@@ -33,18 +33,179 @@ function cleanText(s: string): string {
   if (!s) return "";
   let t = s;
 
-  // Convert ALL Unicode special chars to ASCII — jsPDF helvetica cannot render Unicode
-  // Subscript numbers
+  // Step 1: Remove all SVG blocks, SMILES blocks, and HTML tags
+  t = t.replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "");
+  t = t.replace(/<svg[\s\S]*?<\/svg>/gi, "");
+  t = t.replace(/\[smiles\][\s\S]*?\[\/smiles\]/gi, "");
+  t = t.replace(/<[^>]+>/g, "");
+
+  // Step 2: Fix all HTML entities
+  t = t.replace(/&amp;/g, "&");
+  t = t.replace(/&lt;/g, "<");
+  t = t.replace(/&gt;/g, ">");
+  t = t.replace(/&nbsp;/g, " ");
+  t = t.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+  t = t.replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(Number("0x" + code)));
+  t = t.replace(/&[a-zA-Z]+;/g, "");
+
+  // Step 3: Fix all broken equilibrium and arrow symbols
+  t = t.replace(/!IM/g, "⇌");
+  t = t.replace(/!im/g, "⇌");
+  t = t.replace(/!O/g, "⇒");
+  t = t.replace(/!'/g, "→");
+  t = t.replace(/"H(?![a-zA-Z])/g, "≈");
+  t = t.replace(/"([GHSN])/g, (_, letter) => {
+    if (letter === "G") return "ΔG";
+    if (letter === "H") return "ΔH";
+    if (letter === "S") return "ΔS";
+    if (letter === "n") return "Δn";
+    return _;
+  });
+
+  // Step 4: Fix all negative superscript patterns
+  t = t.replace(/\{(\d)\}/g, (_, digit) => {
+    const superscripts = ["⁻⁰", "⁻¹", "⁻²", "⁻³", "⁻⁴", "⁻⁵", "⁻⁶", "⁻⁷", "⁻⁸", "⁻⁹"];
+    return superscripts[Number(digit)] || _;
+  });
+  t = t.replace(/\{\s+([tuvwx])\}/g, (_, letter) => {
+    const mapping: { [key: string]: string } = {
+      "t": "⁻⁴",
+      "u": "⁻⁵",
+      "v": "⁻⁶",
+      "w": "⁻⁷",
+      "x": "⁻⁸"
+    };
+    return mapping[letter] || _;
+  });
+  t = t.replace(/\{(\d)\s+([tuvwx])\}/g, (_, digit, letter) => {
+    const superscripts = ["⁻⁰", "⁻¹", "⁻²", "⁻³", "⁻⁴", "⁻⁵", "⁻⁶", "⁻⁷", "⁻⁸", "⁻⁹"];
+    const mapping: { [key: string]: string } = {
+      "t": "⁻⁴",
+      "u": "⁻⁵",
+      "v": "⁻⁶",
+      "w": "⁻⁷",
+      "x": "⁻⁸"
+    };
+    return (superscripts[Number(digit)] || "") + (mapping[letter] || "");
+  });
+
+  // Step 5: Fix all ionic charge symbols
+  t = t.replace(/([A-Z][a-z]?)\s+z/g, "$1⁺");
+  t = t.replace(/([A-Z][a-z]?)\s+\{/g, "$1⁻{");
+
+  // Step 6: Fix the square root symbol
+  t = t.replace(/"([\[\w])/g, "√$1");
+
+  // Step 7: Fix all garbled superscript letters
+  t = t.replace(/\b(\w)\s+t\b/g, "$1⁴");
+  t = t.replace(/\b(\w)\s+u\b/g, "$1⁵");
+  t = t.replace(/\b(\w)\s+v\b/g, "$1⁶");
+  t = t.replace(/\b(\w)\s+w\b/g, "$1⁷");
+  t = t.replace(/\b(\w)\s+x\b/g, "$1⁸");
+
+  // Step 8: Fix all limit notation
+  t = t.replace(/lim_([a-zA-Z])\s*"/g, "lim($1→∞)");
+  t = t.replace(/lim_([a-zA-Z])\s+(\d+)/g, "lim($1→$2)");
+  t = t.replace(/lim_([a-zA-Z])→([\d\w]+)/g, "lim($1→$2)");
+
+  // Step 9: Remove all double backslashes and single backslashes as literal text
+  t = t.replace(/""\\\\/g, " ");
+  t = t.replace(/\\\\/g, " ");
+  t = t.replace(/\\([a-zA-Z]+)/g, (match) => {
+    const knownCommands = [
+      "frac", "sqrt", "alpha", "beta", "gamma", "delta", "epsilon", "theta", "lambda", "mu",
+      "pi", "sigma", "omega", "phi", "rho", "eta", "tau", "xi", "zeta", "psi", "chi",
+      "Delta", "Sigma", "Omega", "Pi", "Gamma", "Lambda",
+      "times", "cdot", "div", "pm", "mp", "geq", "leq", "neq", "approx", "infty",
+      "int", "sum", "prod", "lim", "exp", "log", "ln", "sin", "cos", "tan",
+      "sec", "csc", "cot", "arcsin", "arccos", "arctan", "sinh", "cosh", "tanh",
+      "text", "mathrm", "mathbf", "mathit", "mathcal", "mathbb",
+      "vec", "hat", "tilde", "bar", "dot", "ddot", "partial", "nabla", "hbar",
+      "rightarrow", "leftarrow", "Rightarrow", "Leftarrow", "leftrightarrow",
+      "begin", "end", "left", "right", "displaystyle", "operatorname", "ce"
+    ];
+    return knownCommands.includes(match.slice(1)) ? match : "";
+  });
+
+  // Step 10: Fix all LaTeX table formatting
+  t = t.replace(/lccc|cccc|ccc|cc/g, "");
+  t = t.replace(/\\\\\s*/g, "\n");
+  t = t.replace(/(?<!\w)&(?!\w)/g, " | ");
+
+  // Step 11: Fix all LaTeX math commands
+  t = t.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "($1)/($2)");
+  t = t.replace(/\\sqrt\{([^}]*)\}/g, "√($1)");
+  t = t.replace(/\\sqrt(\w)/g, "√$1");
+  
+  // Greek letters
+  t = t.replace(/\\alpha/g, "α");
+  t = t.replace(/\\beta/g, "β");
+  t = t.replace(/\\gamma/g, "γ");
+  t = t.replace(/\\delta/g, "δ");
+  t = t.replace(/\\epsilon/g, "ε");
+  t = t.replace(/\\theta/g, "θ");
+  t = t.replace(/\\lambda/g, "λ");
+  t = t.replace(/\\mu/g, "μ");
+  t = t.replace(/\\pi/g, "π");
+  t = t.replace(/\\sigma/g, "σ");
+  t = t.replace(/\\omega/g, "ω");
+  t = t.replace(/\\phi/g, "φ");
+  t = t.replace(/\\rho/g, "ρ");
+  t = t.replace(/\\eta/g, "η");
+  t = t.replace(/\\tau/g, "τ");
+  t = t.replace(/\\xi/g, "ξ");
+  t = t.replace(/\\zeta/g, "ζ");
+  t = t.replace(/\\psi/g, "ψ");
+  t = t.replace(/\\chi/g, "χ");
+  t = t.replace(/\\Delta/g, "Δ");
+  t = t.replace(/\\Sigma/g, "Σ");
+  t = t.replace(/\\Omega/g, "Ω");
+  t = t.replace(/\\Pi/g, "Π");
+  t = t.replace(/\\Gamma/g, "Γ");
+  t = t.replace(/\\Lambda/g, "Λ");
+  
+  // Math operators
+  t = t.replace(/\\times/g, "×");
+  t = t.replace(/\\cdot/g, "·");
+  t = t.replace(/\\div/g, "÷");
+  t = t.replace(/\\pm/g, "±");
+  t = t.replace(/\\mp/g, "∓");
+  t = t.replace(/\\geq/g, "≥");
+  t = t.replace(/\\leq/g, "≤");
+  t = t.replace(/\\neq/g, "≠");
+  t = t.replace(/\\approx/g, "≈");
+  t = t.replace(/\\infty/g, "∞");
+  t = t.replace(/\\int/g, "∫");
+  t = t.replace(/\\sum/g, "∑");
+  t = t.replace(/\\prod/g, "∏");
+  t = t.replace(/\\partial/g, "∂");
+  t = t.replace(/\\nabla/g, "∇");
+
+  // Step 12: Remove all remaining LaTeX delimiters but keep content
+  t = t.replace(/\$\$[\s\S]*?\$\$/g, (match) => match.slice(2, -2));
+  t = t.replace(/\$([^$\n]+?)\$/g, "$1");
+  t = t.replace(/\\\[[\s\S]*?\\\]/g, (match) => match.slice(2, -2));
+  t = t.replace(/\\\([\s\S]*?\\\)/g, (match) => match.slice(2, -2));
+  t = t.replace(/```[\s\S]*?```/g, (match) => match.slice(3, -3));
+  t = t.replace(/`([^`]*)`/g, "$1");
+
+  // Step 13: Remove all remaining unknown LaTeX commands, curly braces, and dollar signs
+  t = t.replace(/\\[a-zA-Z]+/g, "");
+  t = t.replace(/[{}]/g, "");
+  t = t.replace(/\$/g, "");
+
+  // Step 14: Clean up all extra whitespace
+  t = t.replace(/  +/g, " ");
+  t = t.replace(/\n{3,}/g, "\n\n");
+  
+  // Convert all remaining Unicode special chars to ASCII for jsPDF compatibility
   t = t.replace(/₀/g,"0").replace(/₁/g,"1").replace(/₂/g,"2").replace(/₃/g,"3")
        .replace(/₄/g,"4").replace(/₅/g,"5").replace(/₆/g,"6").replace(/₇/g,"7")
        .replace(/₈/g,"8").replace(/₉/g,"9");
-  // Superscript numbers
   t = t.replace(/⁰/g,"^0").replace(/¹/g,"^1").replace(/²/g,"^2").replace(/³/g,"^3")
        .replace(/⁴/g,"^4").replace(/⁵/g,"^5").replace(/⁶/g,"^6").replace(/⁷/g,"^7")
        .replace(/⁸/g,"^8").replace(/⁹/g,"^9").replace(/ⁿ/g,"^n");
-  // Superscript signs
   t = t.replace(/⁺/g,"^+").replace(/⁻/g,"^-");
-  // Greek letters
   t = t.replace(/α/g,"alpha").replace(/β/g,"beta").replace(/γ/g,"gamma")
        .replace(/δ/g,"delta").replace(/ε/g,"epsilon").replace(/θ/g,"theta")
        .replace(/λ/g,"lambda").replace(/μ/g,"mu").replace(/π/g,"pi")
@@ -52,189 +213,16 @@ function cleanText(s: string): string {
        .replace(/ρ/g,"rho").replace(/η/g,"eta").replace(/τ/g,"tau")
        .replace(/Δ/g,"Delta").replace(/Σ/g,"Sigma").replace(/Ω/g,"Omega")
        .replace(/Π/g,"Pi").replace(/Γ/g,"Gamma").replace(/Λ/g,"Lambda");
-  // Arrows
   t = t.replace(/⇌/g," <=> ").replace(/→/g," -> ").replace(/←/g," <- ")
        .replace(/⇒/g," => ").replace(/↔/g," <-> ").replace(/⟶/g," -> ");
-  // Math symbols
   t = t.replace(/×/g,"x").replace(/÷/g,"/").replace(/±/g,"+/-")
        .replace(/≤/g,"<=").replace(/≥/g,">=").replace(/≠/g,"!=")
        .replace(/≈/g,"~").replace(/∞/g,"inf").replace(/∫/g,"integral")
        .replace(/∑/g,"sum").replace(/√/g,"sqrt").replace(/∂/g,"d")
        .replace(/∇/g,"nabla").replace(/°/g," deg").replace(/·/g,".");
-  // Charges
-  t = t.replace(/⁺/g,"^+").replace(/⁻/g,"^-");
-  // Special dashes
   t = t.replace(/—/g,"-").replace(/–/g,"-").replace(/…/g,"...");
-  // Remove any remaining non-ASCII characters that would garble jsPDF
   t = t.replace(/[^\x00-\x7F]/g, "");
 
-  // Remove SVG and SMILES blocks
-  t = t.replace(/\[svg\][\s\S]*?\[\/svg\]/gi, "[Diagram]");
-  t = t.replace(/<svg[\s\S]*?<\/svg>/gi, "[Diagram]");
-  t = t.replace(/\[smiles\][\s\S]*?\[\/smiles\]/gi, "");
-
-  // Fix HTML entities
-  t = t.replace(/&amp;/g, "&");
-  t = t.replace(/&lt;/g, "<");
-  t = t.replace(/&gt;/g, ">");
-  t = t.replace(/&nbsp;/g, " ");
-  t = t.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
-  t = t.replace(/&[a-zA-Z]+;/g, "");
-
-  // ── FIX GARBLED jsPDF SYMBOLS ──────────────────────────────────────────────
-  // These appear because jsPDF maps special Unicode chars to wrong glyphs
-  t = t.replace(/!Ì/g, " <=> ");
-  t = t.replace(/!ì/g, " <=> ");
-  t = t.replace(/Ì/g, " <=> ");
-  t = t.replace(/!Ò/g, " => ");
-  t = t.replace(/leftharpoons/g, " <=> ");
-  t = t.replace(/\\rightleftharpoons/g, " <=> ");
-  t = t.replace(/"H\b/g, "~");
-  t = t.replace(/"h\b/g, "~");
-  t = t.replace(/\bÀ\b/g, "pi");
-  t = t.replace(/¸/g, "theta");
-  t = t.replace(/!'/g, "->");
-  // Fix garbled superscripts: jsPDF maps x⁴ to "x t", x⁵ to "x u" etc.
-  t = t.replace(/\bx t\b/g, "x^4");
-  t = t.replace(/\bx u\b/g, "x^5");
-  t = t.replace(/\bx v\b/g, "x^6");
-  t = t.replace(/\be t\b/g, "e^4");
-  t = t.replace(/\be u\b/g, "e^5");
-  t = t.replace(/O\(x t\)/g, "O(x^4)");
-  t = t.replace(/O\(x u\)/g, "O(x^5)");
-  t = t.replace(/O\(x v\)/g, "O(x^6)");
-  t = t.replace(/\b(\w)\s+t\b(?!\s*=)/g, "$1^4");
-  t = t.replace(/\b(\w)\s+u\b(?!\s*=)/g, "$1^5");
-  t = t.replace(/\b(\w)\s+v\b(?!\s*=)/g, "$1^6");
-
-  // ── FIX lim NOTATION ──────────────────────────────────────────────────────
-  t = t.replace(/lim_x\s*0/g, "lim(x->0)");
-  t = t.replace(/lim_x\s*"\s*/g, "lim(x->inf)");
-  t = t.replace(/lim_n\s*"\s*/g, "lim(n->inf)");
-  t = t.replace(/lim_x\s*infty/g, "lim(x->inf)");
-  t = t.replace(/lim_n\s*infty/g, "lim(n->inf)");
-  t = t.replace(/lim_([a-zA-Z])\s*→\s*([^\s,]+)/g, "lim($1->$2)");
-  t = t.replace(/lim_([a-zA-Z])\s+([^\s,]+)/g, "lim($1->$2)");
-  // Fix infinity symbol garbling
-  t = t.replace(/\b"\s*$/gm, " inf");
-  t = t.replace(/\b" /g, " inf ");
-  t = t.replace(/→"\b/g, "->inf");
-  t = t.replace(/\b([a-zA-Z])\s*"\b/g, "$1->inf");
-
-  // ── FIX SUBSCRIPT VARIABLES ───────────────────────────────────────────────
-  t = t.replace(/K_p/g, "Kp");
-  t = t.replace(/K_c/g, "Kc");
-  t = t.replace(/K_eq/g, "Keq");
-  t = t.replace(/K_sp/g, "Ksp");
-  t = t.replace(/n_g/g, "delta_n");
-  t = t.replace(/([A-Za-z])_\{([^}]*)\}/g, "$1($2)");
-  t = t.replace(/([A-Za-z])_([0-9])/g, "$1$2");
-
-  // ── FIX \ce{} CHEMISTRY ───────────────────────────────────────────────────
-  const fixCeInner = (inner: string) =>
-    inner
-      .replace(/<=>|<->/g, " <=> ")
-      .replace(/->/g, " -> ")
-      .replace(/<-/g, " <- ")
-      .replace(/\^\{([^}]*)\}/g, "^$1")
-      .replace(/\^([^\s{])/g, "^$1")
-      .replace(/_\{([^}]*)\}/g, "$1")
-      .replace(/_([^\s{])/g, "$1")
-      .replace(/\\/g, "")
-      .trim();
-  t = t.replace(/\$\$\\ce\{([^}]*)\}\$\$/g, (_, inner) => fixCeInner(inner));
-  t = t.replace(/\$\\ce\{([^}]*)\}\$?/g, (_, inner) => fixCeInner(inner));
-  t = t.replace(/\\ce\{([^}]*)\}/g, (_, inner) => fixCeInner(inner));
-
-  // ── FIX LaTeX TEXT COMMANDS ───────────────────────────────────────────────
-  t = t.replace(/\\text\{([^}]*)\}/g, "$1");
-  t = t.replace(/\\mathrm\{([^}]*)\}/g, "$1");
-  t = t.replace(/\\mathbf\{([^}]*)\}/g, "$1");
-  t = t.replace(/\\mathit\{([^}]*)\}/g, "$1");
-
-  // ── FIX LaTeX TABLES ──────────────────────────────────────────────────────
-  t = t.replace(/\\begin\{[^}]*\}/g, "\n");
-  t = t.replace(/\\end\{[^}]*\}/g, "\n");
-  t = t.replace(/lccc\s*/g, "");
-  t = t.replace(/\\\\\s*/g, "\n");
-  t = t.replace(/(?<!\w)&(?!\w)/g, " | ");
-
-  // ── FIX ARROWS ────────────────────────────────────────────────────────────
-  t = t.replace(/<=>/g, " <=> ");
-  t = t.replace(/=>/g, " => ");
-  t = t.replace(/\\rightarrow/g, " -> ");
-  t = t.replace(/\\leftarrow/g, " <- ");
-  t = t.replace(/\\Rightarrow/g, " => ");
-  t = t.replace(/\\leftrightarrow/g, " <-> ");
-
-  // ── STRIP LaTeX DELIMITERS ────────────────────────────────────────────────
-  t = t.replace(/```[\s\S]*?```/g, "");
-  t = t.replace(/`([^`]*)`/g, "$1");
-  t = t.replace(/\$\$([\s\S]*?)\$\$/g, "$1");
-  t = t.replace(/\$([^$\n]+?)\$/g, "$1");
-  t = t.replace(/\\\[([\s\S]*?)\\\]/g, "$1");
-  t = t.replace(/\\\(([\s\S]*?)\\\)/g, "$1");
-
-  // ── FIX MATH EXPRESSIONS ─────────────────────────────────────────────────
-  t = t.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "($1)/($2)");
-  t = t.replace(/\\sqrt\{([^}]*)\}/g, "sqrt($1)");
-  t = t.replace(/\^\{([^}]*)\}/g, "^($1)");
-  t = t.replace(/\^(-?\d+)/g, "^$1");
-
-  // ── MATH SYMBOLS ────────────────────────────────────────────────────────
-  t = t.replace(/\\times/g, "x");
-  t = t.replace(/\\cdot/g, ".");
-  t = t.replace(/\\div/g, "/");
-  t = t.replace(/\\pm/g, "+/-");
-  t = t.replace(/\\mp/g, "-/+");
-  t = t.replace(/\\geq/g, ">=");
-  t = t.replace(/\\leq/g, "<=");
-  t = t.replace(/\\neq/g, "!=");
-  t = t.replace(/\\approx/g, "~");
-  t = t.replace(/\\infty/g, "inf");
-  t = t.replace(/\\alpha/g, "alpha");
-  t = t.replace(/\\beta/g, "beta");
-  t = t.replace(/\\gamma/g, "gamma");
-  t = t.replace(/\\delta/g, "delta");
-  t = t.replace(/\\epsilon/g, "epsilon");
-  t = t.replace(/\\theta/g, "theta");
-  t = t.replace(/\\omega/g, "omega");
-  t = t.replace(/\\lambda/g, "lambda");
-  t = t.replace(/\\mu/g, "mu");
-  t = t.replace(/\\sigma/g, "sigma");
-  t = t.replace(/\\pi/g, "pi");
-  t = t.replace(/\\rho/g, "rho");
-  t = t.replace(/\\phi/g, "phi");
-  t = t.replace(/\\psi/g, "psi");
-  t = t.replace(/\\chi/g, "chi");
-  t = t.replace(/\\eta/g, "eta");
-  t = t.replace(/\\kappa/g, "kappa");
-  t = t.replace(/\\tau/g, "tau");
-  t = t.replace(/\\xi/g, "xi");
-  t = t.replace(/\\zeta/g, "zeta");
-  t = t.replace(/\\partial/g, "d/d");
-  t = t.replace(/\\nabla/g, "nabla");
-  t = t.replace(/\\hbar/g, "h-bar");
-  t = t.replace(/\\int/g, "integral");
-  t = t.replace(/\\sum/g, "sum");
-  t = t.replace(/\\prod/g, "product");
-  t = t.replace(/\\lim/g, "lim");
-  t = t.replace(/\\exp/g, "exp");
-  t = t.replace(/\\log/g, "log");
-  t = t.replace(/\\ln/g, "ln");
-  t = t.replace(/\\sin/g, "sin");
-  t = t.replace(/\\cos/g, "cos");
-  t = t.replace(/\\tan/g, "tan");
-
-  // ── FINAL CLEANUP ────────────────────────────────────────────────────────
-  t = t.replace(/\\vec\{([^}]*)\}/g, "$1");
-  t = t.replace(/\\(?:left|right|displaystyle|operatorname)\s*/g, "");
-  t = t.replace(/\\[a-zA-Z]+/g, "");
-  t = t.replace(/[{}]/g, "");
-  t = t.replace(/\$/g, "");
-  t = t.replace(/<[^>]+>/g, "");
-  t = t.replace(/[ \t]+/g, " ");
-  t = t.replace(/\n{3,}/g, "\n\n");
   return t.trim();
 }
 
