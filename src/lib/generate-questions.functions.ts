@@ -297,14 +297,14 @@ export const generateQuestions = createServerFn({ method: "POST" })
       };
     }
 
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { questions: [], error: "AI service not connected. Please check settings." };
     }
 
     const userParts: Array<
-      | { type: "text"; text: string }
-      | { type: "image_url"; image_url: { url: string } }
+      | { text: string }
+      | { inlineData: { mimeType: string; data: string } }
     > = [];
 
     const subjectLine = data.subject ? `Subject: ${data.subject}.` : "";
