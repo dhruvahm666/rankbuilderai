@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { GeneratedQuestion } from "@/lib/types";
-import { getClientIp } from "./client-ip.server";
+import { getClientIp } from "@/lib/client-ip.server";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 12;
