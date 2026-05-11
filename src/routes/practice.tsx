@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
 import { QuestionBody, InlineMathText } from "@/components/QuestionBody";
+import { SolutionDisplay } from "@/components/SolutionDisplay";
 import { DifficultyPill } from "@/components/DifficultyPill";
 import { toast } from "sonner";
 
