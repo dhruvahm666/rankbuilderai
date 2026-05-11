@@ -297,15 +297,10 @@ export const generateQuestions = createServerFn({ method: "POST" })
       };
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return { questions: [], error: "AI service not connected. Please check settings." };
     }
-
-    const userParts: Array<
-      | { text: string }
-      | { inlineData: { mimeType: string; data: string } }
-    > = [];
 
     const subjectLine = data.subject ? `Subject: ${data.subject}.` : "";
     const typeDesc =
@@ -318,49 +313,13 @@ export const generateQuestions = createServerFn({ method: "POST" })
     const askText = `Generate exactly ${data.count} ${typeDesc} questions for ${data.examLevel}.
 ${subjectLine}
 ${data.topic ? `Topic / context: ${data.topic}` : ""}
-${data.imageDataUrl ? "An image has been provided — identify the underlying concept and generate questions on the SAME topic, including conceptually related sub-topics from NCERT." : ""}
+${data.imageDataUrl ? "(An image was provided by the user but cannot be processed by this model — rely on the topic text above.)" : ""}
 
 Difficulty must reflect real ${data.examLevel} competitive-exam standard — multi-step, conceptual, with strong plausible distractors. NO trivial direct-formula recall questions. Use a ~25/50/25 Easy/Medium/Hard mix.
 
-Format output as a JSON tool call with the "return_questions" function.`;
-
-    userParts.push({ text: askText });
-    if (data.imageDataUrl) {
-      const m = data.imageDataUrl.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
-      if (m) {
-        userParts.push({ inlineData: { mimeType: m[1], data: m[2] } });
-      }
-    }
-
-    const responseSchema = {
-      type: "object",
-      properties: {
-        questions: {
-          type: "array",
-          minItems: data.count,
-          maxItems: data.count,
-          items: {
-            type: "object",
-            properties: {
-              type: { type: "string", enum: ["MCQ", "Numerical"] },
-              question: { type: "string" },
-              options: {
-                type: "array",
-                items: { type: "string" },
-                minItems: 4,
-                maxItems: 4,
-              },
-              correctIndex: { type: "integer", minimum: 0, maximum: 3 },
-              answer: { type: "string" },
-              difficulty: { type: "string", enum: ["Easy", "Medium", "Hard"] },
-              solution: { type: "string" },
-            },
-            required: ["type", "question", "solution"],
-          },
-        },
-      },
-      required: ["questions"],
-    };
+Respond with ONLY a JSON object of the form:
+{"questions":[{"type":"MCQ"|"Numerical","question":string,"options"?:[string,string,string,string],"correctIndex"?:0|1|2|3,"answer"?:string,"difficulty":"Easy"|"Medium"|"Hard","solution":string}, ...]}
+Return exactly ${data.count} items. No prose, no markdown fences — JSON only.`;
 
     try {
       // Silent server-side retry (3 attempts) for transient network / 5xx errors.
@@ -368,7 +327,7 @@ Format output as a JSON tool call with the "return_questions" function.`;
       let response: Response | null = null;
       let lastNetworkErr: unknown = null;
       const MAX_FETCH_ATTEMPTS = 3;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const url = "https://api.groq.com/openai/v1/chat/completions";
       for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 55_000);
@@ -376,15 +335,18 @@ Format output as a JSON tool call with the "return_questions" function.`;
           response = await fetch(url, {
             method: "POST",
             signal: controller.signal,
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
             body: JSON.stringify({
-              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-              contents: [{ role: "user", parts: userParts }],
-              generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema,
-                temperature: 0.7,
-              },
+              model: "llama-3.3-70b-versatile",
+              temperature: 0.7,
+              response_format: { type: "json_object" },
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                { role: "user", content: askText },
+              ],
             }),
           });
         } catch (err) {
@@ -403,19 +365,19 @@ Format output as a JSON tool call with the "return_questions" function.`;
       }
 
       if (!response) {
-        console.error("Gemini network failure", lastNetworkErr);
+        console.error("Groq network failure", lastNetworkErr);
         return { questions: [], error: "AI service temporarily unavailable. Please try again." };
       }
       if (response.status === 429) {
         return { questions: [], error: "Usage limit reached. Please try later." };
       }
       if (!response.ok) {
-        console.error("Gemini API error", response.status, await response.text());
+        console.error("Groq API error", response.status, await response.text());
         return { questions: [], error: "AI service temporarily unavailable. Please try again." };
       }
 
       const json = await response.json();
-      const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const text = json?.choices?.[0]?.message?.content;
       if (!text || typeof text !== "string") {
         return { questions: [], error: "AI service temporarily unavailable. Please try again." };
       }
