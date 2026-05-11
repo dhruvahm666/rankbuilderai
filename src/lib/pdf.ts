@@ -283,6 +283,7 @@ async function buildAndSave(
   opts: { questions: GeneratedQuestion[]; examLevel: string; topic?: string; subject?: string },
   filename: string,
 ) {
+  document.documentElement.classList.add("pdf-capturing");
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
   wrapper.style.left = "-10000px";
@@ -293,55 +294,80 @@ async function buildAndSave(
 
   try {
     const root = wrapper.querySelector<HTMLDivElement>("#pdf-root")!;
-    // Wait one frame so fonts/layout settle
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    // Wait for fonts and layout to settle
+    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
+    try { await (document as any).fonts?.ready; } catch { /* ignore */ }
+
+    const images = root.querySelectorAll("img");
+    await Promise.all(
+      Array.from(images).map(
+        (img) =>
+          new Promise((r) => {
+            if ((img as HTMLImageElement).complete) return r(null);
+            img.addEventListener("load", () => r(null));
+            img.addEventListener("error", () => r(null));
+          }),
+      ),
+    );
 
     const canvas = await html2canvas(root, {
       scale: 2,
       backgroundColor: "#ffffff",
       useCORS: true,
+      allowTaint: true,
       logging: false,
       windowWidth: root.scrollWidth,
+      width: root.scrollWidth,
+      height: root.scrollHeight,
+      onclone: (clonedDoc) => {
+        const clonedRoot = clonedDoc.getElementById("pdf-root") as HTMLElement | null;
+        if (clonedRoot) {
+          clonedRoot.style.position = "relative";
+          clonedRoot.style.left = "0";
+          clonedRoot.style.overflow = "visible";
+        }
+      },
     });
 
     const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 28;
+    const usableW = pageW - margin * 2;
+    const usableH = pageH - margin * 2;
 
-    const imgW = pageW;
-    const imgH = (canvas.height * imgW) / canvas.width;
+    const imgW = usableW;
+    const pxPerPt = canvas.width / imgW;
+    const pageHpx = usableH * pxPerPt;
 
-    // Slice the tall canvas into A4 pages
-    const pageCanvasH = (canvas.width * pageH) / pageW; // height in source px per page
-    const totalPages = Math.ceil(canvas.height / pageCanvasH);
+    let y = 0;
+    let first = true;
+    let pageNum = 0;
+    const totalPages = Math.max(1, Math.ceil(canvas.height / pageHpx));
 
-    for (let p = 0; p < totalPages; p++) {
-      const sliceH = Math.min(pageCanvasH, canvas.height - p * pageCanvasH);
+    while (y < canvas.height) {
+      const sliceH = Math.min(pageHpx, canvas.height - y);
       const slice = document.createElement("canvas");
       slice.width = canvas.width;
       slice.height = sliceH;
       const ctx = slice.getContext("2d")!;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, slice.width, slice.height);
-      ctx.drawImage(
-        canvas,
-        0, p * pageCanvasH, canvas.width, sliceH,
-        0, 0, canvas.width, sliceH,
-      );
-      const img = slice.toDataURL("image/jpeg", 0.92);
-      if (p > 0) pdf.addPage();
-      const sliceImgH = (sliceH * imgW) / canvas.width;
-      pdf.addImage(img, "JPEG", 0, 0, imgW, sliceImgH, undefined, "FAST");
+      ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      if (!first) pdf.addPage();
+      const dataUrl = slice.toDataURL("image/jpeg", 0.92);
+      pdf.addImage(dataUrl, "JPEG", margin, margin, imgW, sliceH / pxPerPt, undefined, "FAST");
+      first = false;
+      y += sliceH;
+      pageNum++;
 
-      // Footer
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(8.5);
       pdf.setTextColor(120, 120, 120);
-      pdf.text("Student Helper by Dhruva", 36, pageH - 16);
-      pdf.text(`Page ${p + 1} of ${totalPages}`, pageW - 36, pageH - 16, { align: "right" });
+      pdf.text("Student Helper by Dhruva", margin, pageH - 12);
+      pdf.text(`Page ${pageNum} of ${totalPages}`, pageW - margin, pageH - 12, { align: "right" });
     }
-
-    void imgH; // (kept for clarity)
 
     const blob = pdf.output("blob");
     const isiOS =
