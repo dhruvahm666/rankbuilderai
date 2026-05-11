@@ -340,7 +340,7 @@ Return exactly ${data.count} items. No prose, no markdown fences — JSON only.`
               Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-              model: "llama-3.3-70b-versatile",
+              model: "mistralai/mistral-7b-instruct:free",
               temperature: 0.7,
               response_format: { type: "json_object" },
               messages: [
