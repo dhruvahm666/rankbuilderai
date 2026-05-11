@@ -9,9 +9,57 @@ const OPTION_LABELS = ["a", "b", "c", "d"] as const;
  * The model often returns "1. foo 2. bar 3. baz" inline, so we insert
  * newline breaks before common step markers, then split on blank lines.
  */
+const SUB_DIGITS = ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"];
+const SUP_DIGITS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
+
+function toSub(d: string) {
+  return d.replace(/\d/g, (n) => SUB_DIGITS[Number(n)]);
+}
+function toSup(d: string) {
+  return d.replace(/\d/g, (n) => SUP_DIGITS[Number(n)]);
+}
+
+/** Normalize plain-text chemistry / math notation the model sometimes emits
+ *  in raw ASCII ("H2", "<=>", "Fe2+") into Unicode the renderer expects. */
+function normalizeChemistry(text: string): string {
+  // Skip math, smiles and svg blocks — only touch surrounding prose.
+  const PROTECT = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\[smiles\][\s\S]*?\[\/smiles\]|\[svg\][\s\S]*?\[\/svg\])/g;
+  return text
+    .split(PROTECT)
+    .map((seg, i) => {
+      if (i % 2 === 1) return seg; // protected block
+      let s = seg;
+      // Arrows
+      s = s.replace(/<=>/g, "⇌").replace(/<-->/g, "⇌");
+      s = s.replace(/-->/g, "→").replace(/->/g, "→");
+      // Charges on ions: Fe2+, SO42-, NH4+
+      s = s.replace(/([A-Z][a-z]?\d*)(\d*)([+\-])/g, (_m, base, n, sign) => {
+        // base may already contain digits — split element vs subscript.
+        const em = base.match(/^([A-Z][a-z]?)(\d*)$/);
+        const elem = em ? em[1] : base;
+        const sub = em ? em[2] : "";
+        const subOut = sub ? toSub(sub) : "";
+        const supOut = (n ? toSup(n) : "") + sign;
+        return `${elem}${subOut}${supOut}`;
+      });
+      // Element followed by digit subscript: H2, O2, NH3, CO2, SO4
+      s = s.replace(/\b([A-Z][a-z]?)(\d+)/g, (_m, el, n) => `${el}${toSub(n)}`);
+      // x^2 / x^{2} → x²
+      s = s.replace(/\^\{(\d+)\}/g, (_m, n) => toSup(n));
+      s = s.replace(/\^(\d)/g, (_m, n) => toSup(n));
+      return s;
+    })
+    .join("");
+}
+
+/**
+ * Normalize a raw solution string into discrete reasoning steps.
+ * The model often returns "1. foo 2. bar 3. baz" inline, so we insert
+ * newline breaks before common step markers, then split on blank lines.
+ */
 function splitIntoSteps(raw: string): string[] {
   if (!raw) return [];
-  let text = raw.replace(/\r\n/g, "\n").trim();
+  let text = normalizeChemistry(raw.replace(/\r\n/g, "\n").trim());
 
   // Strip a leading "Solution:" / "Solution -" header — we render our own.
   text = text.replace(/^\s*solution\s*[:\-—]?\s*/i, "");
@@ -88,10 +136,10 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
         </h3>
       </header>
 
-      <ol className="space-y-3">
+      <ol className="space-y-4">
         {steps.map((step, i) => (
-          <li key={i} className="flex items-start gap-3">
-            <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-background text-[11px] font-bold tabular-nums text-primary">
+          <li key={i} className="flex items-start gap-3 leading-7">
+            <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-background text-[11px] font-bold tabular-nums text-primary">
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
@@ -101,11 +149,13 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
         ))}
       </ol>
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2.5">
-        <span className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-success">
-          Answer
-        </span>
-        <span className="text-[15px] font-semibold leading-7">{answerNode}</span>
+      <div className="mt-5 rounded-lg border-2 border-success/40 bg-success/10 px-4 py-3 shadow-sm">
+        <div className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-success">
+          Correct Answer
+        </div>
+        <div className="mt-1 text-[16px] font-bold leading-7 text-foreground">
+          {answerNode}
+        </div>
       </div>
     </section>
   );
