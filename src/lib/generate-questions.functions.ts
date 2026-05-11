@@ -297,7 +297,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
       };
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return { questions: [], error: "AI service not connected. Please check settings." };
     }
