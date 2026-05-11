@@ -297,14 +297,14 @@ export const generateQuestions = createServerFn({ method: "POST" })
       };
     }
 
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { questions: [], error: "AI service not connected. Please check settings." };
     }
 
     const userParts: Array<
-      | { type: "text"; text: string }
-      | { type: "image_url"; image_url: { url: string } }
+      | { text: string }
+      | { inlineData: { mimeType: string; data: string } }
     > = [];
 
     const subjectLine = data.subject ? `Subject: ${data.subject}.` : "";
@@ -324,91 +324,67 @@ Difficulty must reflect real ${data.examLevel} competitive-exam standard — mul
 
 Format output as a JSON tool call with the "return_questions" function.`;
 
-    userParts.push({ type: "text", text: askText });
+    userParts.push({ text: askText });
     if (data.imageDataUrl) {
-      userParts.push({ type: "image_url", image_url: { url: data.imageDataUrl } });
+      const m = data.imageDataUrl.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+      if (m) {
+        userParts.push({ inlineData: { mimeType: m[1], data: m[2] } });
+      }
     }
 
-    const tool = {
-      type: "function" as const,
-      function: {
-        name: "return_questions",
-        description: "Return the generated exam questions in structured form.",
-        parameters: {
-          type: "object",
-          properties: {
-            questions: {
-              type: "array",
-              minItems: data.count,
-              maxItems: data.count,
-              items: {
-                type: "object",
-                properties: {
-                  type: { type: "string", enum: ["MCQ", "Numerical"] },
-                  question: { type: "string" },
-                  options: {
-                    type: "array",
-                    items: { type: "string" },
-                    minItems: 4,
-                    maxItems: 4,
-                    description: "For MCQ only — exactly 4 options.",
-                  },
-                  correctIndex: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 3,
-                    description: "For MCQ only — index of correct option (0-3).",
-                  },
-                  answer: {
-                    type: "string",
-                    description: "For Numerical only — the numerical answer (may include units).",
-                  },
-                  difficulty: {
-                    type: "string",
-                    enum: ["Easy", "Medium", "Hard"],
-                    description: "Difficulty tier for the difficulty pill shown in the UI.",
-                  },
-                  solution: {
-                    type: "string",
-                    description: "Step-by-step solution, 2-4 concise steps focusing on the concept.",
-                  },
-                },
-                required: ["type", "question", "solution"],
-                additionalProperties: false,
+    const responseSchema = {
+      type: "object",
+      properties: {
+        questions: {
+          type: "array",
+          minItems: data.count,
+          maxItems: data.count,
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["MCQ", "Numerical"] },
+              question: { type: "string" },
+              options: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 4,
+                maxItems: 4,
               },
+              correctIndex: { type: "integer", minimum: 0, maximum: 3 },
+              answer: { type: "string" },
+              difficulty: { type: "string", enum: ["Easy", "Medium", "Hard"] },
+              solution: { type: "string" },
             },
+            required: ["type", "question", "solution"],
           },
-          required: ["questions"],
-          additionalProperties: false,
         },
       },
+      required: ["questions"],
     };
 
     try {
       // Silent server-side retry (3 attempts) for transient network / 5xx errors.
-      // 429 (rate limit) and 402 (credits) are NOT retried — they need user action.
+      // 429 (rate limit) is NOT retried — it needs user action.
       let response: Response | null = null;
       let lastNetworkErr: unknown = null;
       const MAX_FETCH_ATTEMPTS = 3;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
       for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 55_000);
         try {
-          response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          response = await fetch(url, {
             method: "POST",
             signal: controller.signal,
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: userParts },
-              ],
-              tools: [tool],
-              tool_choice: { type: "function", function: { name: "return_questions" } },
+              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+              contents: [{ role: "user", parts: userParts }],
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema,
+                temperature: 0.7,
+              },
             }),
           });
         } catch (err) {
@@ -418,10 +394,8 @@ Format output as a JSON tool call with the "return_questions" function.`;
           clearTimeout(timeoutId);
         }
 
-        // Stop retrying on success or on errors the user must resolve
-        if (response && (response.ok || response.status === 429 || response.status === 402)) break;
+        if (response && (response.ok || response.status === 429)) break;
 
-        // Retry on network failure or 5xx
         if (attempt < MAX_FETCH_ATTEMPTS) {
           const delay = 600 * Math.pow(2, attempt - 1) + Math.random() * 250;
           await new Promise((r) => setTimeout(r, delay));
@@ -429,35 +403,35 @@ Format output as a JSON tool call with the "return_questions" function.`;
       }
 
       if (!response) {
-        console.error("AI gateway network failure", lastNetworkErr);
+        console.error("Gemini network failure", lastNetworkErr);
         return { questions: [], error: "AI service temporarily unavailable. Please try again." };
       }
       if (response.status === 429) {
         return { questions: [], error: "Usage limit reached. Please try later." };
       }
-      if (response.status === 402) {
-        return {
-          questions: [],
-          error: "AI credits exhausted. Please add funds in Settings → Workspace → Usage.",
-        };
-      }
       if (!response.ok) {
-        console.error("AI gateway error", response.status, await response.text());
+        console.error("Gemini API error", response.status, await response.text());
         return { questions: [], error: "AI service temporarily unavailable. Please try again." };
       }
 
       const json = await response.json();
-      const toolCall = json?.choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall?.function?.arguments) {
+      const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text || typeof text !== "string") {
         return { questions: [], error: "AI service temporarily unavailable. Please try again." };
       }
-      const parsed = JSON.parse(toolCall.function.arguments);
+
+      let parsed: { questions?: unknown };
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        return { questions: [], error: "AI service temporarily unavailable. Please try again." };
+      }
       const raw = Array.isArray(parsed.questions) ? parsed.questions : [];
 
       const questions: GeneratedQuestion[] = [];
       const allowedDiff = new Set(["Easy", "Medium", "Hard"]);
-      for (const q of raw) {
-        const difficulty = allowedDiff.has(q?.difficulty) ? q.difficulty : undefined;
+      for (const q of raw as Array<Record<string, unknown>>) {
+        const difficulty = allowedDiff.has(q?.difficulty as string) ? (q.difficulty as "Easy" | "Medium" | "Hard") : undefined;
         if (q.type === "MCQ" && Array.isArray(q.options) && q.options.length === 4) {
           const idx = Number(q.correctIndex);
           if (idx >= 0 && idx <= 3) {
