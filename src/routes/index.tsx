@@ -527,7 +527,7 @@ function Home() {
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   {progress
-                    ? `Generating ${Math.min(progress.generated + 5, progress.total)}/${progress.total}${progress.attempt > 1 ? ` (retry ${progress.attempt})` : ""}...`
+                    ? `Generating questions... ${progress.generated}/${progress.total}`
                     : "Generating questions..."}
                 </>
               ) : (

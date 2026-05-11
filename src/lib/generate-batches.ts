@@ -19,9 +19,10 @@ export interface BatchProgress {
   attempt: number;
 }
 
-const BATCH_SIZE = 5;
-const MAX_ATTEMPTS = 3;
+const BATCH_SIZE = 10;
+const MAX_ATTEMPTS = 5;
 const SERVER_MIN = 5; // server enforces min 5
+const BATCH_DELAY_MS = 5000; // 5s spacing between batches to dodge rate limits
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -57,9 +58,13 @@ async function runBatchWithRetry(
       lastError =
         err instanceof Error ? err.message : "Network error. Please retry.";
     }
-    // Exponential backoff between attempts (except after final)
+    // Wait before retrying — back off harder if it looks like a rate limit
     if (attempt < MAX_ATTEMPTS) {
-      const delay = 800 * Math.pow(2, attempt - 1) + Math.random() * 300;
+      const isRateLimit =
+        typeof lastError === "string" &&
+        /rate.?limit|429|too many|quota/i.test(lastError);
+      const base = isRateLimit ? 5000 : 1000;
+      const delay = base * Math.pow(2, attempt - 1) + Math.random() * 500;
       await sleep(delay);
     }
   }
@@ -114,9 +119,9 @@ export async function generateInBatches(
       firstError = res.error;
     }
 
-    // Small spacing between batches so the gateway never gets hammered
+    // Spacing between batches so the gateway never gets hammered
     if (i < batches.length - 1) {
-      await sleep(400);
+      await sleep(BATCH_DELAY_MS);
     }
   }
 
