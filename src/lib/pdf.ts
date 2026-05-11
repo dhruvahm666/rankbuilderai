@@ -390,6 +390,7 @@ async function buildAndSave(
     }
   } finally {
     wrapper.remove();
+    document.documentElement.classList.remove("pdf-capturing");
   }
 }
 
