@@ -338,6 +338,8 @@ Return exactly ${data.count} items. No prose, no markdown fences — JSON only.`
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${apiKey}`,
+              "HTTP-Referer": "https://examacepro.com",
+              "X-Title": "Exam Ace Pro",
             },
             body: JSON.stringify({
               model: "mistralai/mistral-7b-instruct:free",
