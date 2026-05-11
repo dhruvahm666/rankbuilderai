@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useSession, isCorrect } from "@/lib/session";
 import { downloadTestPDF } from "@/lib/pdf";
 import { QuestionBody, InlineMathText } from "@/components/QuestionBody";
+import { SolutionDisplay } from "@/components/SolutionDisplay";
 import { DifficultyPill } from "@/components/DifficultyPill";
 import { toast } from "sonner";
 
@@ -185,12 +186,7 @@ function PracticePage() {
                   </button>
                 )}
                 {showSol && (
-                  <div className="solution-box mt-4">
-                    <div className="mb-3 font-display text-xs font-bold uppercase tracking-wider text-primary">
-                      Solution
-                    </div>
-                    <QuestionBody text={q.solution} size="sm" />
-                  </div>
+                  <SolutionDisplay question={q} />
                 )}
               </article>
             );
