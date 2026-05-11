@@ -136,10 +136,10 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
         </h3>
       </header>
 
-      <ol className="space-y-3">
+      <ol className="space-y-4">
         {steps.map((step, i) => (
-          <li key={i} className="flex items-start gap-3">
-            <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-background text-[11px] font-bold tabular-nums text-primary">
+          <li key={i} className="flex items-start gap-3 leading-7">
+            <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-background text-[11px] font-bold tabular-nums text-primary">
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
@@ -149,11 +149,13 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
         ))}
       </ol>
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2.5">
-        <span className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-success">
-          Answer
-        </span>
-        <span className="text-[15px] font-semibold leading-7">{answerNode}</span>
+      <div className="mt-5 rounded-lg border-2 border-success/40 bg-success/10 px-4 py-3 shadow-sm">
+        <div className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-success">
+          Correct Answer
+        </div>
+        <div className="mt-1 text-[16px] font-bold leading-7 text-foreground">
+          {answerNode}
+        </div>
       </div>
     </section>
   );
