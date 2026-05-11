@@ -19,9 +19,10 @@ export interface BatchProgress {
   attempt: number;
 }
 
-const BATCH_SIZE = 5;
-const MAX_ATTEMPTS = 3;
+const BATCH_SIZE = 10;
+const MAX_ATTEMPTS = 5;
 const SERVER_MIN = 5; // server enforces min 5
+const BATCH_DELAY_MS = 5000; // 5s spacing between batches to dodge rate limits
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
