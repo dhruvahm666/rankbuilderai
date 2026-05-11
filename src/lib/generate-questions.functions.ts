@@ -297,7 +297,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
       };
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return { questions: [], error: "AI service not connected. Please check settings." };
     }
@@ -327,7 +327,7 @@ Return exactly ${data.count} items. No prose, no markdown fences — JSON only.`
       let response: Response | null = null;
       let lastNetworkErr: unknown = null;
       const MAX_FETCH_ATTEMPTS = 3;
-      const url = "https://openrouter.ai/api/v1/chat/completions";
+      const url = "https://api.groq.com/openai/v1/chat/completions";
       for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 55_000);
@@ -338,11 +338,9 @@ Return exactly ${data.count} items. No prose, no markdown fences — JSON only.`
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${apiKey}`,
-              "HTTP-Referer": "https://examacepro.com",
-              "X-Title": "Exam Ace Pro",
             },
             body: JSON.stringify({
-              model: "mistralai/mistral-7b-instruct:free",
+              model: "llama-3.3-70b-versatile",
               temperature: 0.7,
               response_format: { type: "json_object" },
               messages: [

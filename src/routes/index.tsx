@@ -474,7 +474,7 @@ function Home() {
               <input
                 type="range"
                 min={5}
-                max={30}
+                max={20}
                 step={1}
                 value={count}
                 onChange={(e) => setCount(parseInt(e.target.value))}
@@ -482,7 +482,7 @@ function Home() {
               />
               <div className="mt-1 flex justify-between text-xs text-muted-foreground">
                 <span>5</span>
-                <span>30</span>
+                <span>20</span>
               </div>
             </div>
 
