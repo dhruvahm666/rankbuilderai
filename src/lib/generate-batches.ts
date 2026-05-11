@@ -58,9 +58,13 @@ async function runBatchWithRetry(
       lastError =
         err instanceof Error ? err.message : "Network error. Please retry.";
     }
-    // Exponential backoff between attempts (except after final)
+    // Wait before retrying — back off harder if it looks like a rate limit
     if (attempt < MAX_ATTEMPTS) {
-      const delay = 800 * Math.pow(2, attempt - 1) + Math.random() * 300;
+      const isRateLimit =
+        typeof lastError === "string" &&
+        /rate.?limit|429|too many|quota/i.test(lastError);
+      const base = isRateLimit ? 5000 : 1000;
+      const delay = base * Math.pow(2, attempt - 1) + Math.random() * 500;
       await sleep(delay);
     }
   }
