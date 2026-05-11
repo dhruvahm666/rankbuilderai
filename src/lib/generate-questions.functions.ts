@@ -327,7 +327,7 @@ Return exactly ${data.count} items. No prose, no markdown fences — JSON only.`
       let response: Response | null = null;
       let lastNetworkErr: unknown = null;
       const MAX_FETCH_ATTEMPTS = 3;
-      const url = "https://api.groq.com/openai/v1/chat/completions";
+      const url = "https://openrouter.ai/api/v1/chat/completions";
       for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 55_000);
