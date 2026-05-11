@@ -324,9 +324,12 @@ Difficulty must reflect real ${data.examLevel} competitive-exam standard — mul
 
 Format output as a JSON tool call with the "return_questions" function.`;
 
-    userParts.push({ type: "text", text: askText });
+    userParts.push({ text: askText });
     if (data.imageDataUrl) {
-      userParts.push({ type: "image_url", image_url: { url: data.imageDataUrl } });
+      const m = data.imageDataUrl.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+      if (m) {
+        userParts.push({ inlineData: { mimeType: m[1], data: m[2] } });
+      }
     }
 
     const tool = {
