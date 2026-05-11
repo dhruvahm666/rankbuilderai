@@ -186,12 +186,7 @@ function PracticePage() {
                   </button>
                 )}
                 {showSol && (
-                  <div className="solution-box mt-4">
-                    <div className="mb-3 font-display text-xs font-bold uppercase tracking-wider text-primary">
-                      Solution
-                    </div>
-                    <QuestionBody text={q.solution} size="sm" />
-                  </div>
+                  <SolutionDisplay question={q} />
                 )}
               </article>
             );
