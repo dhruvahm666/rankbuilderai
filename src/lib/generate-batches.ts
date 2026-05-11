@@ -119,9 +119,9 @@ export async function generateInBatches(
       firstError = res.error;
     }
 
-    // Small spacing between batches so the gateway never gets hammered
+    // Spacing between batches so the gateway never gets hammered
     if (i < batches.length - 1) {
-      await sleep(400);
+      await sleep(BATCH_DELAY_MS);
     }
   }
 
