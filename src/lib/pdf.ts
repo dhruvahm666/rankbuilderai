@@ -123,10 +123,28 @@ function normalizeMath(s: string): string {
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/**
+ * Format a string for the PDF: wrap bare LaTeX in `$…$` (so KaTeX picks it up),
+ * apply chemistry/Unicode normalization to the non-math parts only, and escape
+ * HTML safely. The actual math rendering happens later when we run
+ * renderMathInElement on the wrapper.
+ */
 function fmt(s: string): string {
-  // Normalize then escape; preserve newlines as <br>
-  const n = normalizeMath(s ?? "");
-  return escapeHtml(n).replace(/\n/g, "<br>");
+  const pre = preprocessLatex(s ?? "");
+  // Split into [text, math, text, math, …] where math chunks include their delimiters.
+  const parts = pre.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/g);
+  const out: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const seg = parts[i];
+    if (i % 2 === 1) {
+      // Math chunk: keep the delimiters and the body verbatim — KaTeX will
+      // render this. We must NOT html-escape `\` or `{}` inside math.
+      out.push(seg);
+    } else {
+      out.push(escapeHtml(normalizeMath(seg)).replace(/\n/g, "<br>"));
+    }
+  }
+  return out.join("");
 }
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
