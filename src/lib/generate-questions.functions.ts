@@ -297,7 +297,13 @@ export const generateQuestions = createServerFn({ method: "POST" })
       };
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
+    const subjectKeyMap: Record<string, string | undefined> = {
+      Physics: process.env.GROQ_API_KEY_PHYSICS,
+      Chemistry: process.env.GROQ_API_KEY_CHEMISTRY,
+      Maths: process.env.GROQ_API_KEY_MATHS,
+      Biology: process.env.GROQ_API_KEY_BIOLOGY,
+    };
+    const apiKey = data.subject ? subjectKeyMap[data.subject] : undefined;
     if (!apiKey) {
       return { questions: [], error: "AI service not connected. Please check settings." };
     }
