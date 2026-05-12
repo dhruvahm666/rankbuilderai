@@ -316,6 +316,25 @@ async function buildAndSave(
 
   try {
     const root = wrapper.querySelector<HTMLDivElement>("#pdf-root")!;
+
+    // Render LaTeX with KaTeX so math, limits, fractions, integrals etc.
+    // appear in the PDF exactly like they do on screen.
+    try {
+      renderMathInElement(root, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "$", right: "$", display: false },
+        ],
+        throwOnError: false,
+        strict: false,
+        trust: false,
+      });
+    } catch (err) {
+      console.warn("KaTeX render in PDF failed", err);
+    }
+
     // Wait for fonts and layout to settle
     await new Promise((r) => setTimeout(r, 400));
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
