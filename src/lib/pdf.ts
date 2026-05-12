@@ -179,9 +179,9 @@ function renderQuestionCard(q: GeneratedQuestion, idx: number): string {
 }
 
 function splitSteps(raw: string): string[] {
-  const t = normalizeMath(raw ?? "").trim();
+  // Keep LaTeX intact — fmt() will render it later. Only do the split here.
+  const t = (raw ?? "").replace(/\r\n/g, "\n").trim();
   if (!t) return [];
-  // Split on "Step N:", "1.", "1)", or blank lines
   const lines = t.split(/\n+/).map((l) => l.trim()).filter(Boolean);
   const steps: string[] = [];
   let buf = "";
@@ -201,13 +201,13 @@ function splitSteps(raw: string): string[] {
 function renderSolutionCard(q: GeneratedQuestion, idx: number): string {
   const steps = splitSteps(q.solution || "");
   const stepsHtml = steps
-    .map((s, i) => `<li><span class="step-n">${i + 1}</span><span class="step-t">${escapeHtml(s).replace(/\n/g, "<br>")}</span></li>`)
+    .map((s, i) => `<li><span class="step-n">${i + 1}</span><span class="step-t">${fmt(s)}</span></li>`)
     .join("");
 
   const ans =
     q.type === "MCQ"
-      ? `(${OPTION_LABELS[q.correctIndex]}) ${normalizeMath(q.options[q.correctIndex] ?? "")}`
-      : normalizeMath(q.answer ?? "");
+      ? `(${OPTION_LABELS[q.correctIndex]}) ${fmt(q.options[q.correctIndex] ?? "")}`
+      : fmt(q.answer ?? "");
 
   return `
     <article class="scard">
@@ -217,7 +217,7 @@ function renderSolutionCard(q: GeneratedQuestion, idx: number): string {
       </header>
       <div class="qpreview">${fmt(q.question)}</div>
       <ol class="steps">${stepsHtml}</ol>
-      <div class="answer-box"><span class="ans-label">Correct Answer:</span> <span class="ans-val">${escapeHtml(ans)}</span></div>
+      <div class="answer-box"><span class="ans-label">Correct Answer:</span> <span class="ans-val">${ans}</span></div>
     </article>
   `;
 }
