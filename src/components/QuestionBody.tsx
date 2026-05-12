@@ -3,6 +3,7 @@ import { InlineMath, BlockMath } from "react-katex";
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
 import "katex/contrib/mhchem";
+import { preprocessLatex } from "@/lib/preprocess-latex";
 
 const REACTION_ARROW_RE = /[→⇌⇒⇔]/;
 const STRUCTURE_RE = /(CH[₀-₉0-9]?|—|--|⌬|\bC=O\b|\bC≡C\b|\bOH\b|\bNH[₂2]\b|\bNO[₂2]\b)/;
@@ -135,7 +136,7 @@ function ProseWithMath({ text, className }: { text: string; className: string })
 }
 
 export function InlineMathText({ text, className = "" }: { text: string; className?: string }) {
-  const parts = parseMath(text || "");
+  const parts = parseMath(preprocessLatex(text || ""));
   return (
     <span className={className}>
       {parts.map((p, i) => {
@@ -148,7 +149,7 @@ export function InlineMathText({ text, className = "" }: { text: string; classNa
 }
 
 export const QuestionBody = React.memo(function QuestionBody({ text, className = "", size = "md" }: { text: string; className?: string; size?: "sm" | "md"; }) {
-  const segments = segment(text || "");
+  const segments = segment(preprocessLatex(text || ""));
   const proseClass = size === "sm" ? "stem text-[14px] leading-7" : "stem text-[15px] leading-7";
   return (
     <div className={`exam-q ${className}`} style={{ width: "100%", maxWidth: "100%", overflowWrap: "break-word", wordBreak: "break-word", overflowX: "hidden" }}>

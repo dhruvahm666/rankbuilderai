@@ -2,6 +2,10 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
+import renderMathInElement from "katex/contrib/auto-render";
+import "katex/dist/katex.min.css";
+import "katex/contrib/mhchem";
+import { preprocessLatex } from "./preprocess-latex";
 import type { GeneratedQuestion } from "./types";
 
 /* ------------------------------------------------------------------ */
@@ -119,10 +123,28 @@ function normalizeMath(s: string): string {
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/**
+ * Format a string for the PDF: wrap bare LaTeX in `$…$` (so KaTeX picks it up),
+ * apply chemistry/Unicode normalization to the non-math parts only, and escape
+ * HTML safely. The actual math rendering happens later when we run
+ * renderMathInElement on the wrapper.
+ */
 function fmt(s: string): string {
-  // Normalize then escape; preserve newlines as <br>
-  const n = normalizeMath(s ?? "");
-  return escapeHtml(n).replace(/\n/g, "<br>");
+  const pre = preprocessLatex(s ?? "");
+  // Split into [text, math, text, math, …] where math chunks include their delimiters.
+  const parts = pre.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/g);
+  const out: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const seg = parts[i];
+    if (i % 2 === 1) {
+      // Math chunk: keep the delimiters and the body verbatim — KaTeX will
+      // render this. We must NOT html-escape `\` or `{}` inside math.
+      out.push(seg);
+    } else {
+      out.push(escapeHtml(normalizeMath(seg)).replace(/\n/g, "<br>"));
+    }
+  }
+  return out.join("");
 }
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
@@ -157,9 +179,9 @@ function renderQuestionCard(q: GeneratedQuestion, idx: number): string {
 }
 
 function splitSteps(raw: string): string[] {
-  const t = normalizeMath(raw ?? "").trim();
+  // Keep LaTeX intact — fmt() will render it later. Only do the split here.
+  const t = (raw ?? "").replace(/\r\n/g, "\n").trim();
   if (!t) return [];
-  // Split on "Step N:", "1.", "1)", or blank lines
   const lines = t.split(/\n+/).map((l) => l.trim()).filter(Boolean);
   const steps: string[] = [];
   let buf = "";
@@ -179,13 +201,13 @@ function splitSteps(raw: string): string[] {
 function renderSolutionCard(q: GeneratedQuestion, idx: number): string {
   const steps = splitSteps(q.solution || "");
   const stepsHtml = steps
-    .map((s, i) => `<li><span class="step-n">${i + 1}</span><span class="step-t">${escapeHtml(s).replace(/\n/g, "<br>")}</span></li>`)
+    .map((s, i) => `<li><span class="step-n">${i + 1}</span><span class="step-t">${fmt(s)}</span></li>`)
     .join("");
 
   const ans =
     q.type === "MCQ"
-      ? `(${OPTION_LABELS[q.correctIndex]}) ${normalizeMath(q.options[q.correctIndex] ?? "")}`
-      : normalizeMath(q.answer ?? "");
+      ? `(${OPTION_LABELS[q.correctIndex]}) ${fmt(q.options[q.correctIndex] ?? "")}`
+      : fmt(q.answer ?? "");
 
   return `
     <article class="scard">
@@ -195,7 +217,7 @@ function renderSolutionCard(q: GeneratedQuestion, idx: number): string {
       </header>
       <div class="qpreview">${fmt(q.question)}</div>
       <ol class="steps">${stepsHtml}</ol>
-      <div class="answer-box"><span class="ans-label">Correct Answer:</span> <span class="ans-val">${escapeHtml(ans)}</span></div>
+      <div class="answer-box"><span class="ans-label">Correct Answer:</span> <span class="ans-val">${ans}</span></div>
     </article>
   `;
 }
@@ -294,6 +316,25 @@ async function buildAndSave(
 
   try {
     const root = wrapper.querySelector<HTMLDivElement>("#pdf-root")!;
+
+    // Render LaTeX with KaTeX so math, limits, fractions, integrals etc.
+    // appear in the PDF exactly like they do on screen.
+    try {
+      renderMathInElement(root, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "$", right: "$", display: false },
+        ],
+        throwOnError: false,
+        strict: false,
+        trust: false,
+      });
+    } catch (err) {
+      console.warn("KaTeX render in PDF failed", err);
+    }
+
     // Wait for fonts and layout to settle
     await new Promise((r) => setTimeout(r, 400));
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
