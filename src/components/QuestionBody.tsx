@@ -3,6 +3,7 @@ import { InlineMath, BlockMath } from "react-katex";
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
 import "katex/contrib/mhchem";
+import { preprocessLatex } from "@/lib/preprocess-latex";
 
 const REACTION_ARROW_RE = /[→⇌⇒⇔]/;
 const STRUCTURE_RE = /(CH[₀-₉0-9]?|—|--|⌬|\bC=O\b|\bC≡C\b|\bOH\b|\bNH[₂2]\b|\bNO[₂2]\b)/;
