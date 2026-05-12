@@ -2,6 +2,10 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
+import renderMathInElement from "katex/contrib/auto-render";
+import "katex/dist/katex.min.css";
+import "katex/contrib/mhchem";
+import { preprocessLatex } from "./preprocess-latex";
 import type { GeneratedQuestion } from "./types";
 
 /* ------------------------------------------------------------------ */
