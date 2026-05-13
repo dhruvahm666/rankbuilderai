@@ -143,7 +143,7 @@ function PracticePage() {
                             <span className="exam-option-label mt-0.5 text-primary">
                               ({["a", "b", "c", "d"][oi]})
                             </span>
-                            <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" />
+                            <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" subject={subject} />
                             {showState && isAnswer && <Check className="mt-1 h-4 w-4 flex-shrink-0 text-success" />}
                             {showState && selected && !isAnswer && (
                               <X className="mt-1 h-4 w-4 flex-shrink-0 text-destructive" />
