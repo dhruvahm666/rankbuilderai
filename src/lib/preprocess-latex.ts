@@ -63,13 +63,26 @@ function wrapBareLatex(s: string): string {
   });
 }
 
-export function preprocessLatex(text: string | null | undefined): string {
+/**
+ * @param subject - When "Maths" we aggressively wrap bare LaTeX commands so
+ *   raw output like `\frac{1}{2}` renders as a fraction. For other subjects we
+ *   only normalize math operators inside existing `$...$` blocks so we don't
+ *   accidentally mangle chemistry equations, biology terms with backslashes,
+ *   or physics prose that happens to use `\` characters.
+ */
+export function preprocessLatex(
+  text: string | null | undefined,
+  subject?: string,
+): string {
   if (!text) return "";
+  const isMaths = subject === "Maths" || subject === "Mathematics";
   const parts = String(text).split(PROTECTED);
   for (let i = 0; i < parts.length; i++) {
     const seg = parts[i];
     if (i % 2 === 1) {
-      // Protected math/svg block: only inject \limits inside math, never wrap.
+      // Protected math/svg block: inject \limits inside math (all subjects),
+      // never wrap. Limits help \lim, \sum, \int render in NCERT style with
+      // bounds above/below the operator even in inline mode.
       if (
         seg.startsWith("$") ||
         seg.startsWith("\\(") ||
@@ -79,7 +92,7 @@ export function preprocessLatex(text: string | null | undefined): string {
       }
       continue;
     }
-    parts[i] = addLimits(wrapBareLatex(seg));
+    parts[i] = isMaths ? addLimits(wrapBareLatex(seg)) : seg;
   }
   return parts.join("");
 }
