@@ -146,7 +146,7 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
-              <QuestionBody text={step} size="sm" />
+              <QuestionBody text={step} size="sm" subject={subject} />
             </div>
           </li>
         ))}
