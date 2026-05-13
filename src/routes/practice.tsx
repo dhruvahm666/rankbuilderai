@@ -186,7 +186,7 @@ function PracticePage() {
                   </button>
                 )}
                 {showSol && (
-                  <SolutionDisplay question={q} />
+                  <SolutionDisplay question={q} subject={subject} />
                 )}
               </article>
             );
