@@ -232,7 +232,7 @@ function MockPage() {
                       <span className="exam-option-label mt-0.5 text-primary">
                         ({["a", "b", "c", "d"][oi]})
                       </span>
-                      <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" />
+                      <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" subject={subject} />
                     </button>
                   </li>
                 );
