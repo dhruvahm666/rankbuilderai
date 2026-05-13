@@ -105,8 +105,10 @@ function splitIntoSteps(raw: string): string[] {
 
 export const SolutionDisplay = React.memo(function SolutionDisplay({
   question,
+  subject,
 }: {
   question: GeneratedQuestion;
+  subject?: string;
 }) {
   const steps = splitIntoSteps(question.solution || "");
 
@@ -119,10 +121,11 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
         <InlineMathText
           text={question.options[question.correctIndex] ?? ""}
           className="text-foreground"
+          subject={subject}
         />
       </>
     ) : (
-      <InlineMathText text={question.answer ?? ""} className="text-foreground" />
+      <InlineMathText text={question.answer ?? ""} className="text-foreground" subject={subject} />
     );
 
   return (
@@ -143,7 +146,7 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
-              <QuestionBody text={step} size="sm" />
+              <QuestionBody text={step} size="sm" subject={subject} />
             </div>
           </li>
         ))}

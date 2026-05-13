@@ -144,7 +144,7 @@ function MockPage() {
                   </span>
                   <span className="flex-1 font-semibold">
                     {prefix}
-                    <InlineMathText text={answerText} />
+                    <InlineMathText text={answerText} subject={subject} />
                   </span>
                 </div>
               );
@@ -213,7 +213,7 @@ function MockPage() {
             </span>
           </header>
 
-          <QuestionBody text={q.question} />
+          <QuestionBody text={q.question} subject={subject} />
 
           {q.type === "MCQ" ? (
             <ul className="exam-options">
@@ -232,7 +232,7 @@ function MockPage() {
                       <span className="exam-option-label mt-0.5 text-primary">
                         ({["a", "b", "c", "d"][oi]})
                       </span>
-                      <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" />
+                      <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" subject={subject} />
                     </button>
                   </li>
                 );

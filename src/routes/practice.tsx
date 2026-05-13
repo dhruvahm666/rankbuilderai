@@ -122,7 +122,7 @@ function PracticePage() {
                   </span>
                 </header>
 
-                <QuestionBody text={q.question} />
+                <QuestionBody text={q.question} subject={subject} />
 
                 {q.type === "MCQ" ? (
                   <ul className="exam-options">
@@ -143,7 +143,7 @@ function PracticePage() {
                             <span className="exam-option-label mt-0.5 text-primary">
                               ({["a", "b", "c", "d"][oi]})
                             </span>
-                            <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" />
+                            <InlineMathText text={opt} className="flex-1 whitespace-pre-wrap" subject={subject} />
                             {showState && isAnswer && <Check className="mt-1 h-4 w-4 flex-shrink-0 text-success" />}
                             {showState && selected && !isAnswer && (
                               <X className="mt-1 h-4 w-4 flex-shrink-0 text-destructive" />
@@ -171,7 +171,7 @@ function PracticePage() {
                             : "bg-destructive/15 text-destructive"
                         }`}
                       >
-                        {correct ? "Correct" : <>Ans: <InlineMathText text={q.answer} /></>}
+                        {correct ? "Correct" : <>Ans: <InlineMathText text={q.answer} subject={subject} /></>}
                       </div>
                     )}
                   </div>
@@ -186,7 +186,7 @@ function PracticePage() {
                   </button>
                 )}
                 {showSol && (
-                  <SolutionDisplay question={q} />
+                  <SolutionDisplay question={q} subject={subject} />
                 )}
               </article>
             );
