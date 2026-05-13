@@ -135,8 +135,8 @@ function ProseWithMath({ text, className }: { text: string; className: string })
   );
 }
 
-export function InlineMathText({ text, className = "" }: { text: string; className?: string }) {
-  const parts = parseMath(preprocessLatex(text || ""));
+export function InlineMathText({ text, className = "", subject }: { text: string; className?: string; subject?: string }) {
+  const parts = parseMath(preprocessLatex(text || "", subject));
   return (
     <span className={className}>
       {parts.map((p, i) => {
@@ -148,8 +148,8 @@ export function InlineMathText({ text, className = "" }: { text: string; classNa
   );
 }
 
-export const QuestionBody = React.memo(function QuestionBody({ text, className = "", size = "md" }: { text: string; className?: string; size?: "sm" | "md"; }) {
-  const segments = segment(preprocessLatex(text || ""));
+export const QuestionBody = React.memo(function QuestionBody({ text, className = "", size = "md", subject }: { text: string; className?: string; size?: "sm" | "md"; subject?: string }) {
+  const segments = segment(preprocessLatex(text || "", subject));
   const proseClass = size === "sm" ? "stem text-[14px] leading-7" : "stem text-[15px] leading-7";
   return (
     <div className={`exam-q ${className}`} style={{ width: "100%", maxWidth: "100%", overflowWrap: "break-word", wordBreak: "break-word", overflowX: "hidden" }}>
