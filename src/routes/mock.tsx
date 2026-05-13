@@ -144,7 +144,7 @@ function MockPage() {
                   </span>
                   <span className="flex-1 font-semibold">
                     {prefix}
-                    <InlineMathText text={answerText} />
+                    <InlineMathText text={answerText} subject={subject} />
                   </span>
                 </div>
               );
