@@ -171,7 +171,7 @@ function PracticePage() {
                             : "bg-destructive/15 text-destructive"
                         }`}
                       >
-                        {correct ? "Correct" : <>Ans: <InlineMathText text={q.answer} /></>}
+                        {correct ? "Correct" : <>Ans: <InlineMathText text={q.answer} subject={subject} /></>}
                       </div>
                     )}
                   </div>
