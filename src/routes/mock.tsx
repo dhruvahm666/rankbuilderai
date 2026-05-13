@@ -213,7 +213,7 @@ function MockPage() {
             </span>
           </header>
 
-          <QuestionBody text={q.question} />
+          <QuestionBody text={q.question} subject={subject} />
 
           {q.type === "MCQ" ? (
             <ul className="exam-options">
