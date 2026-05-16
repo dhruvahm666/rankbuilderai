@@ -178,30 +178,73 @@ function renderQuestionCard(q: GeneratedQuestion, idx: number): string {
   `;
 }
 
-function splitSteps(raw: string): string[] {
-  // Keep LaTeX intact — fmt() will render it later. Only do the split here.
+type SolStep = { label?: string; body: string };
+
+const PDF_STEP_HEADER_RE = /^\s*Step\s*(\d+)\s*[—\-–:]\s*([^\n:]+?)\s*:\s*$/im;
+const PDF_STEP_HEADER_GLOBAL_RE = /^\s*Step\s*(\d+)\s*[—\-–:]\s*([^\n:]+?)\s*:\s*$/gim;
+
+function splitSteps(raw: string): SolStep[] {
   const t = (raw ?? "").replace(/\r\n/g, "\n").trim();
   if (!t) return [];
+
+  if (PDF_STEP_HEADER_RE.test(t)) {
+    const normalized = t.replace(
+      /\s*(Step\s*\d+\s*[—\-–:]\s*[^\n:]+?:)\s*/gi,
+      "\n\n$1\n",
+    );
+    const parts = normalized.split(PDF_STEP_HEADER_GLOBAL_RE);
+    const steps: SolStep[] = [];
+    for (let i = 1; i + 2 < parts.length; i += 3) {
+      const label = (parts[i + 1] || "").trim();
+      const body = (parts[i + 2] || "").trim();
+      if (label || body) steps.push({ label, body });
+    }
+    if (steps.length) return steps;
+  }
+
+  // Fallback for legacy paragraph-style solutions.
   const lines = t.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  const steps: string[] = [];
+  const steps: SolStep[] = [];
   let buf = "";
   const stepMarker = /^(?:step\s*\d+\s*[:.\)]|[(]?\d{1,2}[\).:]|\u2022|-)\s*/i;
   for (const line of lines) {
     if (stepMarker.test(line)) {
-      if (buf) steps.push(buf.trim());
+      if (buf) steps.push({ body: buf.trim() });
       buf = line.replace(stepMarker, "");
     } else {
       buf += (buf ? " " : "") + line;
     }
   }
-  if (buf) steps.push(buf.trim());
-  return steps.length ? steps : [t];
+  if (buf) steps.push({ body: buf.trim() });
+  return steps.length ? steps : [{ body: t }];
+}
+
+/** Render body with **bold** markers preserved through fmt(). We split on
+ *  bold markers and wrap each bold segment in <strong>. */
+function renderStepBody(text: string): string {
+  const parts = text.split(/(\*\*[^*\n]+\*\*)/g);
+  return parts
+    .map((p) => {
+      const m = p.match(/^\*\*([^*\n]+)\*\*$/);
+      if (m) return `<strong class="bold-ans">${fmt(m[1])}</strong>`;
+      return fmt(p);
+    })
+    .join("");
 }
 
 function renderSolutionCard(q: GeneratedQuestion, idx: number): string {
   const steps = splitSteps(q.solution || "");
   const stepsHtml = steps
-    .map((s, i) => `<li><span class="step-n">${i + 1}</span><span class="step-t">${fmt(s)}</span></li>`)
+    .map(
+      (s, i) => `
+        <li>
+          <span class="step-n">${i + 1}</span>
+          <div class="step-body">
+            ${s.label ? `<div class="step-label">${escapeHtml(s.label)}</div>` : ""}
+            <div class="step-t">${renderStepBody(s.body)}</div>
+          </div>
+        </li>`,
+    )
     .join("");
 
   const ans =
