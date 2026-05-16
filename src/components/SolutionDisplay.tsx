@@ -52,34 +52,53 @@ function normalizeChemistry(text: string): string {
     .join("");
 }
 
-/**
- * Normalize a raw solution string into discrete reasoning steps.
- * The model often returns "1. foo 2. bar 3. baz" inline, so we insert
- * newline breaks before common step markers, then split on blank lines.
- */
-function splitIntoSteps(raw: string): string[] {
+type SolutionStep = { label?: string; body: string };
+
+const STEP_HEADER_RE =
+  /^\s*Step\s*(\d+)\s*[—\-–:]\s*([^\n:]+?)\s*:\s*$/im;
+const STEP_HEADER_GLOBAL_RE =
+  /^\s*Step\s*(\d+)\s*[—\-–:]\s*([^\n:]+?)\s*:\s*$/gim;
+
+function splitIntoSteps(raw: string): SolutionStep[] {
   if (!raw) return [];
   let text = normalizeChemistry(raw.replace(/\r\n/g, "\n").trim());
 
   // Strip a leading "Solution:" / "Solution -" header — we render our own.
   text = text.replace(/^\s*solution\s*[:\-—]?\s*/i, "");
 
-  // Insert a newline before inline step markers like " 2." " 3)" "Step 2:" "(ii)"
-  text = text
+  // Strip a trailing "Answer: ..." — the footer renders the canonical answer.
+  text = text.replace(/\n?\s*(?:Final\s+)?Answer\s*[:\-]\s*[^\n]*\s*$/i, "");
+
+  // Preferred path: model returned the strict "Step N — Label:" structure.
+  if (STEP_HEADER_RE.test(text)) {
+    // Ensure each "Step N — Label:" sits on its own line so the regex split is clean.
+    const normalized = text.replace(
+      /\s*(Step\s*\d+\s*[—\-–:]\s*[^\n:]+?:)\s*/gi,
+      "\n\n$1\n",
+    );
+    const parts = normalized.split(STEP_HEADER_GLOBAL_RE);
+    // split() with a regex containing groups yields: [pre, num, label, body, num, label, body, ...]
+    const steps: SolutionStep[] = [];
+    for (let i = 1; i + 2 < parts.length; i += 3) {
+      const label = (parts[i + 1] || "").trim();
+      const body = (parts[i + 2] || "").trim();
+      if (label || body) steps.push({ label, body });
+    }
+    if (steps.length) return steps;
+  }
+
+  // Fallback: legacy inline "1. foo 2. bar" or paragraph solutions.
+  let legacy = text
     .replace(/\s+(?=(?:Step\s*\d+\s*[:.\-]))/gi, "\n")
     .replace(/(?<=\S)\s+(\d{1,2})[.)]\s+(?=[A-Z(\[\$\\])/g, "\n$1. ")
     .replace(/\s+(?=\((?:i|ii|iii|iv|v|vi|vii|viii|ix|x)\)\s)/g, "\n");
 
-  // Strip a trailing "Answer: ..." — the footer renders the canonical answer.
-  text = text.replace(/\n?\s*(?:Final\s+)?Answer\s*[:\-]\s*[^\n]*\s*$/i, "");
-
-  // Split into step blocks by blank lines or by leading step markers.
-  const lines = text.split("\n");
-  const steps: string[] = [];
+  const lines = legacy.split("\n");
+  const steps: SolutionStep[] = [];
   let buf: string[] = [];
   const flush = () => {
     const s = buf.join("\n").trim();
-    if (s) steps.push(s);
+    if (s) steps.push({ body: s });
     buf = [];
   };
   const isStepStart = (l: string) =>
@@ -91,7 +110,6 @@ function splitIntoSteps(raw: string): string[] {
       continue;
     }
     if (isStepStart(line) && buf.length) flush();
-    // Strip the leading marker so we render our own numbered chip.
     const cleaned = line.replace(
       /^\s*(?:Step\s*\d+\s*[:.\-]\s*|\d{1,2}[.)]\s+|[-•]\s+)/i,
       "",
@@ -100,7 +118,30 @@ function splitIntoSteps(raw: string): string[] {
   }
   flush();
 
-  return steps.length ? steps : [text];
+  return steps.length ? steps : [{ body: text }];
+}
+
+/** Render a body string, turning **bold** markers into <strong> while
+ *  delegating math/chemistry to QuestionBody. We split on bold markers and
+ *  recombine so KaTeX still sees clean text inside each fragment. */
+function renderBodyWithBold(text: string, subject?: string) {
+  const parts = text.split(/(\*\*[^*\n]+\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) => {
+        const m = p.match(/^\*\*([^*\n]+)\*\*$/);
+        if (m) {
+          return (
+            <strong key={i} className="font-bold text-foreground">
+              <InlineMathText text={m[1]} subject={subject} />
+            </strong>
+          );
+        }
+        if (!p) return null;
+        return <QuestionBody key={i} text={p} size="sm" subject={subject} />;
+      })}
+    </>
+  );
 }
 
 export const SolutionDisplay = React.memo(function SolutionDisplay({
