@@ -180,14 +180,21 @@ export const SolutionDisplay = React.memo(function SolutionDisplay({
         </h3>
       </header>
 
-      <ol className="space-y-4">
+      <ol className="space-y-6">
         {steps.map((step, i) => (
           <li key={i} className="flex items-start gap-3 leading-7">
             <span className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-background text-[11px] font-bold tabular-nums text-primary">
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
-              <QuestionBody text={step} size="sm" subject={subject} />
+              {step.label && (
+                <div className="mb-2 font-display text-[12px] font-bold uppercase tracking-[0.14em] text-primary">
+                  {step.label}
+                </div>
+              )}
+              <div className="space-y-1">
+                {renderBodyWithBold(step.body, subject)}
+              </div>
             </div>
           </li>
         ))}
