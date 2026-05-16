@@ -96,7 +96,7 @@ FORMAT:
 - For "MCQ": exactly 4 options with exactly ONE correct answer. Each option must be self-contained and short.
 - For "Numerical": a single numerical answer (string form, may include units).
 - For "Mixed": a balanced mix of MCQ and Numerical.
-- Every question must include a concise step-by-step solution (2-4 logical steps focusing on the concept used).
+- Every question must include a step-by-step solution following the strict 5-step structure defined in SOLUTION STYLE below (Given / Formula / Substitution / Simplification / Final Answer).
 - Begin questions with friendly, simple verbs: "Find", "Evaluate", "Compute", "Identify", "Which of the following", "What is".
 
 GLOBAL TEXTBOOK FORMATTING (STRICTLY FOLLOW — NEVER WRITE CODE-STYLE):
