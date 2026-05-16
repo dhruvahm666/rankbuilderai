@@ -306,11 +306,15 @@ function buildHtml(opts: {
     .qpreview{font-size:12.5px;color:#64748b;font-style:italic;margin:6px 0 10px;
       padding:6px 10px;background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:2px;}
     .steps{list-style:none;padding:0;margin:0;}
-    .steps li{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;}
+    .steps li{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;}
     .step-n{flex:0 0 22px;height:22px;border-radius:50%;background:#1e3a8a;color:#fff;
       font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;
       display:inline-flex;align-items:center;justify-content:center;}
-    .step-t{flex:1;white-space:pre-wrap;}
+    .step-body{flex:1;min-width:0;}
+    .step-label{font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;
+      letter-spacing:.8px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;}
+    .step-t{white-space:pre-wrap;line-height:1.7;}
+    .step-t .bold-ans{font-weight:700;color:#052e16;}
     .answer-box{margin-top:12px;padding:10px 14px;background:#f0fdf4;border:2px solid #86efac;
       border-radius:6px;color:#14532d;font-weight:700;}
     .ans-label{color:#166534;letter-spacing:.4px;}
