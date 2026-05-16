@@ -155,7 +155,12 @@ export function preprocessLatex(
   subject?: string,
 ): string {
   if (!text) return "";
-  const isMaths = subject === "Maths" || subject === "Mathematics";
+  // Apply aggressive math preprocessing for Maths AND Physics (both subjects
+  // are math-heavy and use the same notation conventions).
+  const isMathy =
+    subject === "Maths" ||
+    subject === "Mathematics" ||
+    subject === "Physics";
   const parts = String(text).split(PROTECTED);
   for (let i = 0; i < parts.length; i++) {
     const seg = parts[i];
@@ -179,7 +184,7 @@ export function preprocessLatex(
       }
       continue;
     }
-    if (!isMaths) continue;
+    if (!isMathy) continue;
     let s = seg;
     s = wrapUnicodeMath(s);
     s = wrapBareLatex(s);
@@ -189,5 +194,17 @@ export function preprocessLatex(
     });
     parts[i] = s;
   }
-  return parts.join("");
+  let out = parts.join("");
+  // Promote inline math containing big operators (lim, sum, int, prod, ...)
+  // to display math so bounds render above/below the operator, never beside.
+  const BIG_OPS = /\\(lim|sum|prod|int|iint|iiint|oint|bigcup|bigcap|bigoplus|bigotimes|limsup|liminf|max|min|sup|inf)\b/;
+  out = out.replace(/\$([^$\n]+?)\$/g, (m, inner) => {
+    if (BIG_OPS.test(inner)) return "$$" + inner + "$$";
+    return m;
+  });
+  out = out.replace(/\\\(([\s\S]+?)\\\)/g, (m, inner) => {
+    if (BIG_OPS.test(inner)) return "\\[" + inner + "\\]";
+    return m;
+  });
+  return out;
 }
