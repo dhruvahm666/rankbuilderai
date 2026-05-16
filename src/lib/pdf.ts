@@ -178,30 +178,73 @@ function renderQuestionCard(q: GeneratedQuestion, idx: number): string {
   `;
 }
 
-function splitSteps(raw: string): string[] {
-  // Keep LaTeX intact — fmt() will render it later. Only do the split here.
+type SolStep = { label?: string; body: string };
+
+const PDF_STEP_HEADER_RE = /^\s*Step\s*(\d+)\s*[—\-–:]\s*([^\n:]+?)\s*:\s*$/im;
+const PDF_STEP_HEADER_GLOBAL_RE = /^\s*Step\s*(\d+)\s*[—\-–:]\s*([^\n:]+?)\s*:\s*$/gim;
+
+function splitSteps(raw: string): SolStep[] {
   const t = (raw ?? "").replace(/\r\n/g, "\n").trim();
   if (!t) return [];
+
+  if (PDF_STEP_HEADER_RE.test(t)) {
+    const normalized = t.replace(
+      /\s*(Step\s*\d+\s*[—\-–:]\s*[^\n:]+?:)\s*/gi,
+      "\n\n$1\n",
+    );
+    const parts = normalized.split(PDF_STEP_HEADER_GLOBAL_RE);
+    const steps: SolStep[] = [];
+    for (let i = 1; i + 2 < parts.length; i += 3) {
+      const label = (parts[i + 1] || "").trim();
+      const body = (parts[i + 2] || "").trim();
+      if (label || body) steps.push({ label, body });
+    }
+    if (steps.length) return steps;
+  }
+
+  // Fallback for legacy paragraph-style solutions.
   const lines = t.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  const steps: string[] = [];
+  const steps: SolStep[] = [];
   let buf = "";
   const stepMarker = /^(?:step\s*\d+\s*[:.\)]|[(]?\d{1,2}[\).:]|\u2022|-)\s*/i;
   for (const line of lines) {
     if (stepMarker.test(line)) {
-      if (buf) steps.push(buf.trim());
+      if (buf) steps.push({ body: buf.trim() });
       buf = line.replace(stepMarker, "");
     } else {
       buf += (buf ? " " : "") + line;
     }
   }
-  if (buf) steps.push(buf.trim());
-  return steps.length ? steps : [t];
+  if (buf) steps.push({ body: buf.trim() });
+  return steps.length ? steps : [{ body: t }];
+}
+
+/** Render body with **bold** markers preserved through fmt(). We split on
+ *  bold markers and wrap each bold segment in <strong>. */
+function renderStepBody(text: string): string {
+  const parts = text.split(/(\*\*[^*\n]+\*\*)/g);
+  return parts
+    .map((p) => {
+      const m = p.match(/^\*\*([^*\n]+)\*\*$/);
+      if (m) return `<strong class="bold-ans">${fmt(m[1])}</strong>`;
+      return fmt(p);
+    })
+    .join("");
 }
 
 function renderSolutionCard(q: GeneratedQuestion, idx: number): string {
   const steps = splitSteps(q.solution || "");
   const stepsHtml = steps
-    .map((s, i) => `<li><span class="step-n">${i + 1}</span><span class="step-t">${fmt(s)}</span></li>`)
+    .map(
+      (s, i) => `
+        <li>
+          <span class="step-n">${i + 1}</span>
+          <div class="step-body">
+            ${s.label ? `<div class="step-label">${escapeHtml(s.label)}</div>` : ""}
+            <div class="step-t">${renderStepBody(s.body)}</div>
+          </div>
+        </li>`,
+    )
     .join("");
 
   const ans =
@@ -263,11 +306,15 @@ function buildHtml(opts: {
     .qpreview{font-size:12.5px;color:#64748b;font-style:italic;margin:6px 0 10px;
       padding:6px 10px;background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:2px;}
     .steps{list-style:none;padding:0;margin:0;}
-    .steps li{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;}
+    .steps li{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;}
     .step-n{flex:0 0 22px;height:22px;border-radius:50%;background:#1e3a8a;color:#fff;
       font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;
       display:inline-flex;align-items:center;justify-content:center;}
-    .step-t{flex:1;white-space:pre-wrap;}
+    .step-body{flex:1;min-width:0;}
+    .step-label{font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;
+      letter-spacing:.8px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;}
+    .step-t{white-space:pre-wrap;line-height:1.7;}
+    .step-t .bold-ans{font-weight:700;color:#052e16;}
     .answer-box{margin-top:12px;padding:10px 14px;background:#f0fdf4;border:2px solid #86efac;
       border-radius:6px;color:#14532d;font-weight:700;}
     .ans-label{color:#166534;letter-spacing:.4px;}
