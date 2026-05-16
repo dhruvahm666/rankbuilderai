@@ -96,7 +96,7 @@ FORMAT:
 - For "MCQ": exactly 4 options with exactly ONE correct answer. Each option must be self-contained and short.
 - For "Numerical": a single numerical answer (string form, may include units).
 - For "Mixed": a balanced mix of MCQ and Numerical.
-- Every question must include a concise step-by-step solution (2-4 logical steps focusing on the concept used).
+- Every question must include a step-by-step solution following the strict 5-step structure defined in SOLUTION STYLE below (Given / Formula / Substitution / Simplification / Final Answer).
 - Begin questions with friendly, simple verbs: "Find", "Evaluate", "Compute", "Identify", "Which of the following", "What is".
 
 GLOBAL TEXTBOOK FORMATTING (STRICTLY FOLLOW — NEVER WRITE CODE-STYLE):
@@ -229,10 +229,41 @@ DIFFICULTY MIX (every batch):
 - "Easy" here means easy *for a competitive-exam aspirant*, not easy for a beginner — it should still demand understanding, not memorisation.
 - Difficulty must respect the exam level (a "Hard" KCET/KSET question is easier than a "Hard" JEE Advanced question, but never below standard exam level).
 
-SOLUTION STYLE:
-- Read like a teacher on a blackboard. Short sentences. Use the SAME textbook formatting rules above.
-- 2–4 numbered or sequential steps focusing on the key concept and the final answer.
-- Use newlines between steps so the solution is easy to read.
+SOLUTION STYLE (STRICT FIXED 5-STEP STRUCTURE — APPLY TO EVERY SOLUTION, EVERY SUBJECT, EVERY EXAM LEVEL):
+- The "solution" string MUST follow EXACTLY this 5-step structure. Each step header is written verbatim on its own line, followed by a blank line, then the step's content, then a blank line before the next step header. Never merge steps. Never skip a step (if a step is trivially short, still emit it).
+- Use the SAME textbook formatting rules above (KaTeX for complex math, Unicode for simple symbols, [smiles]/[svg] when relevant).
+- Required template (copy this skeleton, replace the «...» parts):
+
+    Step 1 — Given:
+
+    «list each given value / fact on its OWN line, e.g.
+    u = 5 m/s
+    a = 2 m/s²
+    t = 4 s»
+
+    Step 2 — Formula:
+
+    «write the exact formula or theorem to be used, centered on its own line as display math when math, e.g.
+    $$v = u + at$$»
+
+    Step 3 — Substitution:
+
+    «substitute the given values into the formula, centered on its own line, e.g.
+    $$v = 5 + (2)(4)$$»
+
+    Step 4 — Simplification:
+
+    «show the calculation, ONE simplification step per line, do not skip arithmetic, e.g.
+    v = 5 + 8
+    v = 13 m/s»
+
+    Step 5 — Final Answer:
+
+    «state the final answer in one short line. Wrap the final numeric/expression answer in **double asterisks** to bold it. Include units when applicable, e.g.
+    The final velocity is **13 m/s**.»
+
+- For conceptual / theory MCQs where "Given" or "Substitution" do not naturally apply, still emit all 5 step headers — under Given list the key facts from the stem, under Formula write the governing principle/definition/law, under Substitution apply it to the specific case in the question, under Simplification reason through the options, under Final Answer state the chosen option.
+- Never collapse the structure into a paragraph. Never use any other step labels.
 
 UNITS: write normally — m/s, m/s², kg, N, mol, J, kJ/mol, K, Pa.
 
