@@ -195,15 +195,48 @@ export function preprocessLatex(
     parts[i] = s;
   }
   let out = parts.join("");
-  // Promote inline math containing big operators (lim, sum, int, prod, ...)
-  // to display math so bounds render above/below the operator, never beside.
-  const BIG_OPS = /\\(lim|sum|prod|int|iint|iiint|oint|bigcup|bigcap|bigoplus|bigotimes|limsup|liminf|max|min|sup|inf)\b/;
+
+  // ---------- Cleanup malformed LaTeX inside math runs ----------
+  out = out.replace(
+    /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/g,
+    (block) =>
+      block
+        // collapse accidental double backslashes before commands: \\frac -> \frac
+        // (KaTeX uses \\ as a row separator inside matrices/aligned, so only
+        // strip when followed by 2+ letters of a command name)
+        .replace(/\\\\(?=[a-zA-Z]{2,})/g, "\\")
+        // common AI typos
+        .replace(/\\infin\b/g, "\\infty")
+        .replace(/\\rarr\b/g, "\\rightarrow")
+        .replace(/\\larr\b/g, "\\leftarrow")
+        // collapse runs of internal whitespace
+        .replace(/[ \t]{2,}/g, " "),
+  );
+
+  // Promote inline math to display mode for constructs that belong on their
+  // own line (NCERT/JEE textbook convention).
+  const BIG_OPS =
+    /\\(lim|sum|prod|int|iint|iiint|oint|bigcup|bigcap|bigoplus|bigotimes|limsup|liminf)\b/;
+  const MATRIX_LIKE =
+    /\\begin\{(?:p?matrix|bmatrix|vmatrix|Vmatrix|Bmatrix|cases|aligned|array|align\*?|gather\*?)\}/;
+  const LONG_FRAC = /\\d?frac\b[\s\S]*\\d?frac\b/;
+  const VECTORS = /\\(vec|overrightarrow|overline)\{[^{}]{2,}\}/;
+  const PIECEWISE = /\\begin\{cases\}/;
+
+  const shouldDisplay = (inner: string) =>
+    BIG_OPS.test(inner) ||
+    MATRIX_LIKE.test(inner) ||
+    PIECEWISE.test(inner) ||
+    LONG_FRAC.test(inner) ||
+    VECTORS.test(inner) ||
+    inner.length > 60;
+
   out = out.replace(/\$([^$\n]+?)\$/g, (m, inner) => {
-    if (BIG_OPS.test(inner)) return "$$" + inner + "$$";
+    if (shouldDisplay(inner)) return "$$" + inner + "$$";
     return m;
   });
   out = out.replace(/\\\(([\s\S]+?)\\\)/g, (m, inner) => {
-    if (BIG_OPS.test(inner)) return "\\[" + inner + "\\]";
+    if (shouldDisplay(inner)) return "\\[" + inner + "\\]";
     return m;
   });
   return out;
