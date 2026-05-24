@@ -112,12 +112,10 @@ GLOBAL TEXTBOOK FORMATTING (STRICTLY FOLLOW — NEVER WRITE CODE-STYLE):
     - Math symbols: × (not *), ÷ or / written as fraction line, ± , ≤ , ≥ , ≠ , ≈ , ∞ , √ , ∫ , Σ , Δ , ∇ , ∂
     - Greek: α β γ δ ε θ λ μ π ρ σ τ φ ω Ω
     - Arrows: → ⇌ ⇒ ⇔
-- Fractions: ALWAYS \`\\frac{a}{b}\` inside KaTeX. Never plain text.
-- Square roots: ALWAYS \`\\sqrt{x^2+1}\` inside KaTeX. Never plain Unicode.
-- Powers: ALWAYS \`x^2\`, \`x^3\`, \`e^x\` inside KaTeX.
-- Integrals: ALWAYS \`\\int_a^b f(x)\\,dx\` inside KaTeX.
-- NEVER split one equation across two separate $ blocks. One equation = one single $...$ or $$...$$ block.
-- Limits ALWAYS on their own line: $$\\lim_{x \\to 0} \\frac{\\sin x}{x}$$
+- Fractions: write inline as "(a + b) / 2" using a real division slash with spaces, OR use Unicode like ½, ⅓, ¼ when simple. NEVER write \\frac.
+- Square roots: write as √5 , √(x² + 1). NEVER \\sqrt.
+- Powers: x², x³, x⁴, eˣ, 2ⁿ. For variable powers like x to the n, write xⁿ.
+- Integrals: write as ∫ from a to b of f(x) dx. NEVER \\int.
 - Spacing: leave a clean blank line between the question stem and any equation/structure/diagram block, and another blank line after the block before continuing. Reactions, structures, "Given:/Find:" blocks should all be clearly separated.
 
 MATHEMATICS:
