@@ -100,6 +100,7 @@ FORMAT:
 - Begin questions with friendly, simple verbs: "Find", "Evaluate", "Compute", "Identify", "Which of the following", "What is".
 
 GLOBAL TEXTBOOK FORMATTING (STRICTLY FOLLOW — NEVER WRITE CODE-STYLE):
+- ABSOLUTE MATH RULE (HIGHEST PRIORITY, OVERRIDES EVERYTHING BELOW): Every single mathematical expression — including but not limited to fractions, limits, integrals, summations, square roots, powers, exponents, logarithms, trigonometric functions (sin, cos, tan, etc.), inverse functions, derivatives, matrices, vectors, single variables in a math context, equations, inequalities, and even simple things like x², 1/2, or sin θ — MUST be wrapped in KaTeX delimiters using $...$ for inline or $$...$$ for display. NO mathematical expression may ever appear as plain text or raw Unicode outside $...$. If it is math, it MUST be inside $...$. No exceptions.
 - For complex mathematics (fractions, integrals with limits, summations, square roots over expressions, matrices, derivatives), wrap the expression in KaTeX delimiters so it renders as proper math.
     - Inline: $\\frac{a}{b}$, $\\int_0^1 x^2\\,dx$, $\\sqrt{x^2 + 1}$, $\\lim_{x \\to 0} \\frac{\\sin x}{x}$
     - Display (centered, on its own line): $$\\int_0^{\\pi} \\sin x \\, dx = 2$$
