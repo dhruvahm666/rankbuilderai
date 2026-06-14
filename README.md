@@ -69,3 +69,6 @@ Students preparing for:
 ---
 
 *Built by Dhruva H M — 17y/o developer from Karnataka, India*
+<img width="1532" height="716" alt="Screenshot 2026-06-14 113830" src="https://github.com/user-attachments/assets/116a22ab-fef8-46eb-befe-aadd758c8870" /><img width="1513" height="722" alt="Screenshot 2026-06-14 114006" src="https://github.com/user-attachments/assets/7f6e122b-3ad4-4903-8b7d-df85387775a2" />
+<img width="1536" height="708" alt="Screenshot 2026-06-14 113914" src="https://github.com/user-attachments/assets/07c12a76-29fe-4223-bb57-0caeaddb3742" />
+
