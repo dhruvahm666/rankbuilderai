@@ -2,7 +2,7 @@
 
 > AI-powered question paper generator for Indian competitive exam aspirants
 
-🌐 **Live at:** [your domain here]
+🌐 **Live at:** [rankbuilderai.shop]
 
 ---
 
