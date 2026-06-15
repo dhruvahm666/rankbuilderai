@@ -51,9 +51,9 @@ Students preparing for:
 
 ## 🌍 Impact
 
-- ✅ Currently live and being used by real students
-- ✅ Accessible via custom domain on Google
-- ✅ Solving a real problem for many of Indian exam aspirants
+- ✅ Live and deployed on a custom domain
+- ✅ Built to help JEE, NEET, and CET aspirants strengthen conceptual understanding
+- ✅ Designed for real-world use by Indian competitive exam students
 
 ---
 
