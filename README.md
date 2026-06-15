@@ -53,7 +53,7 @@ Students preparing for:
 
 - ✅ Currently live and being used by real students
 - ✅ Accessible via custom domain on Google
-- ✅ Solving a real problem for lakhs of Indian exam aspirants
+- ✅ Solving a real problem for many of Indian exam aspirants
 
 ---
 
