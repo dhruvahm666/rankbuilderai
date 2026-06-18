@@ -1,6 +1,6 @@
 # 🏆 Rank Builder AI
 
-
+> AI-powered question paper generator for Indian competitive exam aspirants
 
 🌐 **Live at:** [rankbuilderai.shop]
 
