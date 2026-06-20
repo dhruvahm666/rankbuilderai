@@ -8,13 +8,6 @@
 
 ## 📌 What is Rank Builder AI?
 
-Rank Builder AI is a web platform designed to help students preparing for 
-competitive exams like **JEE, NEET, and CET** build conceptual understanding 
-through personalised practice.
-
-The core idea is simple: the more problems a student solves on a specific 
-topic, the stronger their conceptual foundation becomes. Rank Builder AI 
-makes that process easy, fast, and structured.
 
 ---
 
