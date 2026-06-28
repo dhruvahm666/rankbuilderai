@@ -90,5 +90,5 @@ The core idea is simple: the more problems a student solves on a specific topic,
 ---
 
 <p align="center">
-  <i>Built by Dhruva H M — 17y/o developer from Karnataka, India</i>
+  <i>Built by Dhruva H M — developer from Karnataka, India</i>
 </p>
